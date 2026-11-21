@@ -76,12 +76,27 @@ Le poêle n'obéit qu'à la télécommande avec laquelle il a été appairé. Ch
 identifiant (visible dans **Réglages › Poêle**). Deux possibilités :
 
 **A. Appairer le poêle avec le module** (cas général)
-1. Mettez le poêle en mode « appairage télécommande » en suivant la **notice de votre poêle**
-   (chapitre sur la télécommande). Sur beaucoup de modèles, cela se fait avec une touche ou un
-   interrupteur à l'arrière du poêle.
-2. Pendant que le poêle attend, cliquez sur **Renvoyer la commande** sur la page d'accueil du
-   module. Le poêle confirme par une série de bips.
-3. La télécommande d'origine peut ne plus être reconnue ensuite : c'est normal.
+
+L'appairage se fait depuis le **panneau d'urgence**, à l'arrière du poêle (petit écran, deux LEDs,
+sélecteurs et boutons). Procédure de la notice MCZ, chapitre « Synchronisation de la
+télécommande » :
+
+1. Ouvrez la page d'accueil du module sur votre téléphone, à portée de main.
+2. Vérifiez que le **sélecteur « D »** du panneau d'urgence est sur **REMOTE**.
+3. Éteignez le poêle avec l'interrupteur général (à l'arrière), puis rallumez-le.
+4. Dès que le premier message s'affiche sur l'écran du panneau d'urgence, appuyez sur le
+   **bouton « G »** avec un objet pointu (cure-dent, trombone).
+5. Trois tirets clignotants **« --- »** s'affichent : le poêle attend une télécommande.
+   Cliquez alors sur **Renvoyer la commande** dans la page du module.
+6. Les tirets disparaissent et le poêle émet un signal sonore : l'appairage est fait.
+
+La télécommande d'origine ne sera plus reconnue ensuite : c'est normal, le poêle ne retient
+qu'une seule télécommande. Pour la réutiliser, refaites la procédure en appuyant sur son bouton
+marche/arrêt à l'étape 5.
+
+*Procédure décrite dans la notice de l'Ego ; la télécommande étant commune à plusieurs modèles
+MCZ, elle devrait être la même sur les autres poêles. En cas de doute, voir la notice de votre
+poêle (chapitre « Panneau d'urgence »).*
 
 **B. Reprendre l'identifiant de la télécommande d'origine** (si vous le connaissez, par exemple
 lu avec un boîtier RFXCOM) : saisissez-le dans **Réglages › Poêle › Identifiant**. Aucun
@@ -151,7 +166,8 @@ N'utilisez pas le fichier `…-complet.bin` pour une mise à jour : il effacerai
 | Le réseau `MCZ-xxxxxx` n'apparaît pas | Vérifiez l'alimentation USB ; refaites l'étape 2 |
 | Mot de passe WiFi erroné | Le module rouvre `MCZ-xxxxxx` au bout de 20 s : recommencez l'étape 3 |
 | LED 1 rouge fixe dès le démarrage | Module radio non détecté : vérifiez ses soudures et son orientation |
-| Le poêle ne réagit pas | Modèle de module (Réglages › Radio), appairage (étape 4), rapprochez le module du poêle |
+| Le poêle ne réagit pas | Sélecteur « D » du panneau d'urgence sur **REMOTE** ; modèle de module (Réglages › Radio) ; appairage (étape 4) ; rapprochez le module du poêle |
+| Portée faible | Vérifiez que l'antenne du poêle (à l'arrière, près du panneau d'urgence) est vissée jusqu'en butée, partie mobile vers le haut |
 | Le poêle change de réglage tout seul | La télécommande d'origine a encore ses piles |
 | `poele-mcz.local` introuvable | Utilisez l'adresse IP du module (voir votre box) |
 | Mot de passe de l'interface oublié | Réinstallez le module (étape 2, avec **Erase Flash**) puis refaites la configuration |
