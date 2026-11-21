@@ -1,0 +1,15 @@
+# Compilation
+.pio/
+.vscode/
+
+# Données personnelles : identifiant du poêle, réseau, mots de passe
+private/
+
+# Recherches et captures radio d'origine (non publiées)
+Ressources/
+
+# Binaires générés pour les releases
+dist/
+
+# Réglages locaux de l'assistant
+.claude/

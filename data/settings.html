@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Réglages poêle MCZ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Réglages</h1>
+    <a href="index.html">‹ Poêle</a>
+  </header>
+
+  <form id="form" autocomplete="off">
+    <section class="card">
+      <h2>WiFi</h2>
+      <button type="button" class="btn" id="scan">Rechercher les réseaux</button>
+      <ul class="networks" id="networks"></ul>
+      <label for="wifi-ssid">Réseau (SSID)</label>
+      <input id="wifi-ssid" data-key="wifi.ssid">
+      <label for="wifi-password">Mot de passe</label>
+      <input id="wifi-password" type="password" data-key="wifi.password" data-secret="wifi.has_password">
+      <label for="wifi-hostname">Nom d'hôte</label>
+      <input id="wifi-hostname" data-key="wifi.hostname" pattern="[a-zA-Z0-9\-]{1,32}">
+      <p class="hint">Le module sera joignable sur http://<em>nom</em>.local</p>
+    </section>
+
+    <section class="card">
+      <h2>MQTT / Home Assistant</h2>
+      <label class="check"><input type="checkbox" data-key="mqtt.enabled"> Activer MQTT</label>
+      <div class="row">
+        <div><label for="mqtt-host">Serveur</label><input id="mqtt-host" data-key="mqtt.host"></div>
+        <div><label for="mqtt-port">Port</label><input id="mqtt-port" type="number" data-key="mqtt.port" data-type="int"></div>
+      </div>
+      <div class="row">
+        <div><label for="mqtt-user">Utilisateur</label><input id="mqtt-user" data-key="mqtt.user"></div>
+        <div><label for="mqtt-password">Mot de passe</label>
+          <input id="mqtt-password" type="password" data-key="mqtt.password" data-secret="mqtt.has_password"></div>
+      </div>
+      <label for="mqtt-base">Topic de base</label>
+      <input id="mqtt-base" data-key="mqtt.base_topic">
+      <label for="mqtt-disco">Préfixe de découverte</label>
+      <input id="mqtt-disco" data-key="mqtt.discovery_prefix">
+      <p class="hint">Le poêle apparaît automatiquement dans Home Assistant (intégration MQTT).</p>
+    </section>
+
+    <section class="card">
+      <h2>Poêle</h2>
+      <label for="stove-id">Identifiant de la télécommande</label>
+      <input id="stove-id" data-key="stove.id" data-type="id">
+      <p class="hint">Décimal ou hexadécimal (ex. 1193046 ou 0x123456). Par défaut, un identifiant propre au
+        module : appairez le poêle avec (voir la documentation). Si vous changez cette valeur, refaites l'appairage.</p>
+      <div class="row">
+        <div>
+          <label for="stove-resend">Renvoi périodique (s)</label>
+          <input id="stove-resend" type="number" min="0" max="65535" data-key="stove.resend_s" data-type="int">
+        </div>
+        <div><label for="stove-fan2">Ventilateur 2</label><input id="stove-fan2" type="number" min="0" max="7" data-key="stove.fan2" data-type="int"></div>
+      </div>
+      <p class="hint">Renvoi périodique : l'état est renvoyé sans bip, comme le fait la télécommande
+        d'origine (300 s). 0 = désactivé. Il écrase les réglages faits avec la télécommande d'origine :
+        retirez-en les piles. Ventilateur 2 : 7 = absent (valeur de la télécommande d'origine).</p>
+    </section>
+
+    <section class="card">
+      <h2>Radio</h2>
+      <label for="radio-hw">Modèle de module</label>
+      <select id="radio-hw" data-key="radio.high_power" data-type="bool">
+        <option value="false">RFM69W / RFM69CW</option>
+        <option value="true">RFM69HW / RFM69HCW</option>
+      </select>
+      <p class="hint">Si le poêle ne réagit pas, essayez l'autre modèle : avec le mauvais réglage,
+        le module n'émet presque rien.</p>
+      <div class="row">
+        <div><label for="radio-power">Puissance (dBm)</label><input id="radio-power" type="number" min="-18" max="17" data-key="radio.power_dbm" data-type="int"></div>
+        <div><label for="radio-freq">Fréquence (MHz)</label><input id="radio-freq" type="number" step="0.001" data-key="radio.frequency_hz" data-type="mhz"></div>
+      </div>
+      <div class="row">
+        <div><label for="radio-chip">Demi-bit (µs)</label><input id="radio-chip" type="number" min="100" max="2000" data-key="radio.chip_us" data-type="int"></div>
+        <div><label for="radio-rep">Répétitions</label><input id="radio-rep" type="number" min="1" max="5" data-key="radio.repeats" data-type="int"></div>
+      </div>
+      <p class="hint">Bande 868,7–869,2 MHz : 14 dBm (25 mW) maximum autorisé.</p>
+    </section>
+
+    <section class="card">
+      <h2>Sécurité</h2>
+      <label for="web-password">Mot de passe de l'interface (utilisateur « admin »)</label>
+      <input id="web-password" type="password" data-key="web_password" data-secret="has_web_password">
+      <label class="check"><input type="checkbox" id="clear-web-password"> Supprimer le mot de passe</label>
+      <p class="hint">Protège aussi la mise à jour du firmware (web et OTA).</p>
+    </section>
+
+    <div class="actions" style="margin-bottom:14px">
+      <button class="btn primary" type="submit">Enregistrer</button>
+    </div>
+  </form>
+
+  <section class="card">
+    <h2>Maintenance</h2>
+    <div class="actions">
+      <a class="btn" href="/update">Mettre à jour le firmware</a>
+      <button class="btn" id="reboot">Redémarrer</button>
+      <button class="btn danger" id="factory">Réinitialiser</button>
+    </div>
+    <p class="hint">Appui long (8 s) sur le bouton du module : efface le WiFi et ouvre le point d'accès
+      de configuration.</p>
+  </section>
+</main>
+<div id="toast"></div>
+<script src="common.js"></script>
+<script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Poêle MCZ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Poêle MCZ</h1>
+    <a href="settings.html">Réglages ›</a>
+  </header>
+
+  <section class="card">
+    <div class="power-row">
+      <div>
+        <div class="state" id="state">…</div>
+        <div class="sub" id="last-tx">&nbsp;</div>
+      </div>
+      <button class="toggle" id="toggle" aria-label="Marche / arrêt"></button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Puissance</h2>
+    <div class="seg" id="power">
+      <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button>
+      <button data-v="4">4</button><button data-v="5">5</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Ventilation</h2>
+    <div class="seg" id="fan">
+      <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button>
+      <button data-v="4">4</button><button data-v="5">5</button><button data-v="auto">Auto</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="actions">
+      <button class="btn" id="resend">Renvoyer la commande</button>
+    </div>
+    <p class="hint">La liaison radio est à sens unique : l'état affiché est le dernier état envoyé,
+      pas celui lu sur le poêle. Si un réglage a été changé avec la télécommande d'origine,
+      l'état affiché ici peut être faux.</p>
+  </section>
+
+  <section class="card">
+    <h2>Module</h2>
+    <dl class="status" id="status"></dl>
+  </section>
+</main>
+<div id="toast"></div>
+<script src="common.js"></script>
+<script src="index.js"></script>
+</body>
+</html>
