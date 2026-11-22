@@ -30,6 +30,19 @@ function formatDuration(s) {
   return `il y a ${Math.floor(s / 86400)} j`;
 }
 
+const DAY_NAMES = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const DAY_SHORT = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+// 1050 -> "17:30" ; 1440 -> "24:00"
+function fmtMinute(m) {
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
+// 20.5 -> "20,5 °C" ; null -> "Arrêt"
+function fmtTarget(t) {
+  return t === null || t === undefined ? "Arrêt" : `${t.toFixed(1).replace(".", ",")} °C`;
+}
+
 function dot(cls) {
   return `<span class="dot ${cls}"></span>`;
 }

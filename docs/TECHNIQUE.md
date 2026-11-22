@@ -16,9 +16,15 @@ fonctionnement. Pour une simple installation, voir le [README](../README.md).
 | `src/HomeAssistant.*` | MQTT et découverte automatique Home Assistant |
 | `src/Peripherals.*` | LEDs WS2812 et bouton du shield |
 | `src/TempSensor.*` | Sonde DS18B20 optionnelle (1-Wire, lecture non bloquante) |
+| `lib/Thermostat/` | Programmation hebdomadaire et régulation du mode autonome (C++ pur, testable sur PC) |
+| `src/Clock.*` | Heure locale par NTP, fuseau POSIX |
+| `src/Autonomous.*` | Mode autonome : `/schedule.json`, régulation, commandes au poêle |
 | `include/config.h` | Brochage, valeurs par défaut, version |
 | `data/` | Interface web (HTML, CSS, JS), téléversée dans LittleFS |
 | `tools/test_protocol.cpp` | Tests de l'encodeur (sur PC) |
+| `tools/test_thermostat.cpp` | Tests de la programmation et de la régulation (sur PC) |
+| `tools/make_demo.py`, `tools/demo/demo.js` | Démo de l'interface sans module (faux module en JavaScript) |
+| `tools/make_screenshots.py`, `tools/demo/shot.js` | Captures d'écran de la documentation (`docs/images/`) |
 | `tools/fs_keep_settings.py` | Conserve les réglages lors de `pio run -t uploadfs` |
 | `tools/make_release.py` | Génère les fichiers de release dans `dist/` |
 
@@ -63,6 +69,26 @@ contient aucun réglage personnel (après un `uploadfs`, l'image du dossier `.pi
 
 ```sh
 g++ -std=c++17 -I lib/MczProtocol lib/MczProtocol/MczProtocol.cpp tools/test_protocol.cpp -o /tmp/test_mcz && /tmp/test_mcz
+g++ -std=c++17 -I lib/Thermostat lib/Thermostat/Thermostat.cpp tools/test_thermostat.cpp -o /tmp/test_thermo && /tmp/test_thermo
+```
+
+### Démo de l'interface
+
+```sh
+python3 tools/make_demo.py        # -> build/demo/index.html, à ouvrir dans un navigateur
+```
+
+Les pages de `data/` sont copiées sans modification ; `tools/demo/demo.js`, chargé avant
+`common.js`, remplace `fetch()` par un faux module : poêle, pièce (pertes vers 8 °C, constante de
+temps 2 h, apport proportionnel à la puissance) et mode autonome (même logique que
+`lib/Thermostat`), avec temps accéléré réglable. L'état est gardé dans le `localStorage`.
+`--artifact` produit une `index.html` sans squelette HTML pour un hébergement qui ajoute le sien.
+
+Les captures d'écran de la documentation (`docs/images/`) sont générées à partir de cette démo,
+dans un état fixe (`tools/demo/shot.js`), avec Chrome ou Chromium sans écran :
+
+```sh
+python3 tools/make_screenshots.py
 ```
 
 ## Matériel
@@ -156,13 +182,52 @@ bit de la FIFO correspond à un demi-bit Manchester, le débit radio étant rég
 Le module cadence lui-même l'émission (pas de gigue due au WiFi) et aucune modification de la
 carte n'est nécessaire. Le flux complet (5 répétitions) tient en 125 octets.
 
+## Mode autonome
+
+- **Heure** : `configTime()` avec le fuseau POSIX `time.tz` (par défaut
+  `CET-1CEST,M3.5.0,M10.5.0/3`) et le serveur `time.ntp`. Une fois synchronisée, l'heure continue
+  de tourner sans réseau (nouvelle synchronisation SNTP toutes les heures, l'heure locale est
+  gardée en cas d'échec).
+- **Mode dégradé** (heure inconnue, typiquement un redémarrage sans accès au serveur de temps) :
+  la consigne appliquée avec une heure valide est enregistrée (`last_target` dans
+  `/schedule.json`) ; sans heure, la régulation tourne sur cette consigne avec
+  `allowStart = false` : chauffe, maintien et arrêt fonctionnent, mais la phase Arrêt ne mène
+  jamais à l'Allumage. La programmation est suspendue jusqu'au retour de l'heure. Sans consigne
+  enregistrée, rien n'est fait. `/api/status` indique `"degraded": true`.
+- **Programmation** (`lib/Thermostat`, `thermo::Week`) : 7 jours (0 = lundi), 12 plages au plus
+  par jour, `[début, fin[` en minutes (fin 1440 = minuit), consigne en dixièmes de °C (5 à 30 °C)
+  ou arrêt. Les plages d'une journée ne se chevauchent pas (refusé par l'API). En dehors des
+  plages : arrêt. Enregistrée avec l'état actif/inactif dans `/schedule.json`, conservé par
+  `uploadfs` et effacé par la réinitialisation.
+- **Régulation** (`thermo::Regulator`), exécutée toutes les 5 s :
+  - Arrêt → Allumage si T ≤ consigne − écart (`auto.hysteresis`, 1 °C) ;
+  - Allumage : `auto.startup_power` (5) pendant `auto.startup_min` (20 min), puis Maintien si
+    T ≥ consigne, sinon Chauffe ;
+  - Chauffe : `auto.heat_power` (3) jusqu'à T ≥ consigne, puis Maintien ;
+  - Maintien : `auto.hold_power` (1) pendant `auto.hold_min` (15 min) ; à la fin, si
+    T < T(début du maintien) − 0,1 °C → Chauffe, sinon → Arrêt ;
+  - plage arrêt / pas de plage → Arrêt immédiat ; sonde muette plus de 5 min → Arrêt ;
+  - à l'activation (et au démarrage du module), si le poêle est déjà allumé, la régulation
+    commence en Chauffe au lieu de l'éteindre.
+- **Commandes** : le module émet lorsque l'état voulu (marche, puissance, ventilation auto)
+  diffère de l'état courant, avec ou sans bip (`auto.beep`). À la première régulation après le
+  démarrage du module ou l'activation du mode, l'état voulu est émis même s'il n'a pas changé
+  (sans bip). Ensuite, comme pour toute commande, l'état est renvoyé sans bip toutes les
+  `stove.resend_s` secondes (300 par défaut) par `Stove::loop()`. Les changements silencieux
+  (bip à 0) n'ont été vérifiés que pour des renvois du même état.
+- **Reprise manuelle** : `Stove::applyAutomatic()` ne déclenche pas les écouteurs « manuels » ;
+  toute autre modification (`setOn`, `setPower`, `setFan`, `applyJson`) désactive le mode autonome.
+- Horloge monotone en secondes (`Clock::uptimeS()`), insensible au retour à zéro de `millis()`.
+
 ## API REST
 
 | Méthode | URL | Rôle |
 |---|---|---|
-| GET | `/api/status` | état du poêle et du module ; `device.temperature` = `{"present":true,"celsius":20.5,"age_s":12}` |
-| POST | `/api/stove` | `{"on":true,"power":3,"fan":"auto"}` (champs facultatifs) |
+| GET | `/api/status` | état du poêle et du module ; `device.temperature` = `{"present":true,"celsius":20.5,"age_s":12}` ; `auto` = mode autonome (`enabled`, `time`, `time_valid`, `day`, `minute`, `target`, `next`, `phase`, `power`, `phase_elapsed_s`, `phase_duration_s`) |
+| POST | `/api/stove` | `{"on":true,"power":3,"fan":"auto"}` (champs facultatifs ; désactive le mode autonome) |
 | POST | `/api/stove/resend` | renvoie la dernière commande |
+| POST | `/api/auto` | `{"enabled":true}` active / désactive le mode autonome |
+| GET / POST | `/api/schedule` | programmation : `{"days":[[{"start":360,"end":480,"target":20.5}, …], … 7 jours]}`, `target: null` = arrêt ; le POST remplace tout |
 | GET / POST | `/api/settings` | réglages (les mots de passe ne sont jamais renvoyés) |
 | GET | `/api/wifi/scan` | réseaux WiFi visibles |
 | POST | `/api/reboot` | redémarrage |
@@ -192,6 +257,8 @@ Avec un mot de passe web : `-u admin:motdepasse`.
 | `<base>/set/power` | `1` … `5` |
 | `<base>/set/fan` | `1` … `5` / `auto` |
 | `<base>/set/resend` | renvoie la dernière commande |
+| `<base>/auto` | mode autonome, même contenu que `auto` de `/api/status` (retenu) |
+| `<base>/set/auto` | `ON` / `OFF` : active / désactive le mode autonome |
 
 Découverte Home Assistant sous `<prefix>/<composant>/mcz-xxxxxx/<objet>/config` (switch, number,
 select, button, sensor). Le capteur de température n'est annoncé qu'à la première détection d'une

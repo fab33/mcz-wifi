@@ -41,12 +41,19 @@ class Stove {
   bool setPower(uint8_t p);
   bool setFan(uint8_t f);
   void resend() { request(true); }
+  // Renvoi sans bip de l'état courant (démarre aussi le renvoi périodique).
+  void resendSilent() { request(false); }
 
   // Applique {"on":true,"power":3,"fan":"auto"} (champs facultatifs).
   bool applyJson(JsonObjectConst obj, String& error);
   void toJson(JsonObject obj) const;
 
+  // Commande du mode autonome : ne déclenche pas les écouteurs « manuels ».
+  void applyAutomatic(const StoveState& s, bool beep);
+
   void onChange(Listener l) { _listeners.push_back(l); }
+  // Appelé lors d'une commande manuelle (web, MQTT, bouton) qui modifie l'état.
+  void onManualChange(Listener l) { _manualListeners.push_back(l); }
 
   uint32_t lastTxMillis() const { return _lastTx; }
   bool lastTxOk() const { return _lastTxOk; }
@@ -54,7 +61,7 @@ class Stove {
 
  private:
   void request(bool beep);
-  void changed();
+  void changed(bool manual = true, bool beep = true);
   void send(bool beep);
   void saveState();
   bool loadState();
@@ -68,4 +75,5 @@ class Stove {
   bool _lastTxOk = false;
   uint32_t _txCount = 0;
   std::vector<Listener> _listeners;
+  std::vector<Listener> _manualListeners;
 };

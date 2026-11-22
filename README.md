@@ -4,6 +4,8 @@ Pilotez votre poêle MCZ depuis votre téléphone, votre ordinateur ou **Home As
 toucher au poêle : un petit module WiFi remplace la télécommande radio d'origine.
 
 - Marche / arrêt, puissance de flamme (1 à 5), ventilation (1 à 5 ou auto)
+- Mode autonome : programmation hebdomadaire et régulation de température (avec la sonde
+  DS18B20 optionnelle)
 - Page web intégrée, utilisable depuis n'importe quel navigateur
 - Intégration automatique dans Home Assistant (MQTT)
 - Portée radio supérieure à celle de la télécommande d'origine
@@ -170,6 +172,8 @@ appairage n'est alors nécessaire.
 La page d'accueil du module permet d'allumer et d'éteindre le poêle, et de régler la puissance
 et la ventilation. Chaque commande est envoyée immédiatement ; le poêle bipe à la réception.
 
+<p align="center"><img src="docs/images/accueil.png" width="300" alt="Page d'accueil du module : marche / arrêt, mode autonome, puissance et ventilation"></p>
+
 **À savoir :**
 - **Le poêle ne renvoie aucune information** : le module affiche le dernier ordre envoyé, pas
   l'état réel du poêle. Si quelqu'un utilise la télécommande d'origine, l'affichage peut être faux.
@@ -179,11 +183,11 @@ et la ventilation. Chaque commande est envoyée immédiatement ; le poêle bipe 
   d'origine (réglable dans **Réglages › Poêle**).
 - Les modes Manuel / Auto / Eco de la télécommande n'existent pas ici : ils sont gérés par la
   télécommande elle-même et ne changent rien au poêle. Pour réguler sur la température, utilisez
-  Home Assistant (thermostat + sonde de température, par exemple la sonde DS18B20 optionnelle
-  du module).
+  le **mode autonome** du module (ci-dessous) ou un thermostat Home Assistant.
 - Si une sonde DS18B20 est branchée, la température s'affiche dans le cadre **Module**.
 - Après une coupure de courant, le module **n'envoie rien** au poêle : il ne risque pas de
-  l'allumer ou de l'éteindre par surprise.
+  l'allumer ou de l'éteindre par surprise (sauf si le mode autonome est actif : il reprend alors
+  la régulation).
 
 **Bouton du module** : appui court = marche / arrêt du poêle ; appui long (8 s, LEDs violettes)
 = effacement du WiFi et retour au réseau `MCZ-xxxxxx` de configuration.
@@ -199,6 +203,57 @@ et la ventilation. Chaque commande est envoyée immédiatement ; le poêle bipe 
 | 2 | orange | poêle en marche |
 | 2 | flash blanc | commande envoyée (flash rouge : échec radio) |
 
+### Mode autonome
+
+Le module peut piloter le poêle tout seul, selon une **programmation hebdomadaire** et la
+température de la pièce. Il faut la **sonde DS18B20** (voir « Option : sonde de température ») et
+l'accès à Internet pour l'heure (ou un serveur de temps local, voir **Réglages › Mode autonome**).
+
+<p align="center">
+  <img src="docs/images/programmation.png" width="300" alt="Page Programmation : vue de la semaine et modification d'une plage">
+  &nbsp;
+  <img src="docs/images/reglages-mode-autonome.png" width="300" alt="Réglages du mode autonome">
+</p>
+
+**Programmation** (bouton **Programmation** de la page d'accueil) : chaque jour a ses propres
+plages, chacune avec une **température de consigne** ou **Arrêt**. En dehors des plages, le poêle
+est arrêté.
+- **Créer une plage** : choisissez les jours (**tous les jours**, **semaine** du lundi au vendredi,
+  **week-end**, ou un seul jour), le début, la fin et l'action, puis **Appliquer**. Une nouvelle
+  plage remplace ce qu'elle recouvre. Fin à 00:00 = jusqu'à minuit.
+- **Modifier ou effacer** : touchez une plage dans la vue de la semaine, elle est chargée dans le
+  formulaire ; changez-la puis **Appliquer**, ou **Effacer la période**. De 00:00 à 00:00,
+  « Effacer la période » vide toute la journée.
+- **Copier une journée** vers une autre, vers la semaine, le week-end ou tous les jours.
+- **Vider la semaine** efface toutes les plages (second appui pour confirmer).
+- Rien n'est envoyé au module avant **Enregistrer**.
+
+**Régulation** (valeurs réglables dans **Réglages › Mode autonome**) :
+
+| Phase | Puissance | Passage à la phase suivante |
+|---|---|---|
+| Arrêt | poêle éteint | la température descend **1 °C sous la consigne** → Allumage |
+| Allumage | **5** pendant **20 min** | consigne atteinte → Maintien, sinon → Chauffe |
+| Chauffe | **3** | consigne atteinte → Maintien |
+| Maintien | **1** pendant **15 min** | température pas redescendue → **Arrêt** ; elle a baissé → Chauffe |
+
+- La ventilation reste en **automatique**.
+- Une plage **Arrêt**, ou l'absence de plage, éteint le poêle immédiatement.
+- Sans mesure de température pendant 5 minutes, le poêle est éteint ; sans sonde, il n'est jamais
+  allumé.
+- **Sans Internet** : une fois l'heure reçue, le module la garde et tout continue normalement. S'il
+  **redémarre sans accès au serveur de temps**, il ne connaît plus l'heure : la programmation est
+  suspendue et la régulation continue sur la **dernière consigne connue**, sans jamais rallumer le
+  poêle. Un poêle allumé est donc régulé puis éteint normalement, au lieu de chauffer sans
+  limite ; une fois éteint, il le reste jusqu'au retour de l'heure. Un serveur de temps local
+  (box, Home Assistant) dans **Réglages › Mode autonome** évite ce cas.
+- **Toute commande manuelle** (page web, Home Assistant, bouton du module) **désactive le mode
+  autonome** : réactivez-le avec l'interrupteur de la page d'accueil.
+- Pendant le maintien, une baisse de 0,1 °C est tolérée (précision de la sonde).
+
+Une **démo** de l'interface (poêle et pièce simulés, temps accéléré) se construit avec
+`python3 tools/make_demo.py`, puis s'ouvre dans un navigateur : `build/demo/index.html`.
+
 ## 6. Home Assistant
 
 1. Il faut l'intégration **MQTT** dans Home Assistant (par exemple avec le module complémentaire
@@ -212,7 +267,8 @@ et la ventilation. Chaque commande est envoyée immédiatement ; le poêle bipe 
 Entités créées : interrupteur **Poêle**, **Puissance** (1 à 5), **Ventilation** (1 à 5 / auto),
 bouton **Renvoyer la commande**, capteur **Signal WiFi** et, si une sonde DS18B20 est branchée,
 capteur **Température** (il devient « indisponible » si la sonde ne répond plus ; s'il ne vous
-sert plus, supprimez-le dans Home Assistant).
+sert plus, supprimez-le dans Home Assistant), interrupteur **Mode autonome**, capteurs
+**Consigne** (inconnue pendant un arrêt programmé) et **Régulation** (phase en cours).
 
 ## 7. Mettre à jour le module
 
@@ -233,6 +289,8 @@ N'utilisez pas le fichier `…-complet.bin` pour une mise à jour : il effacerai
 | Portée faible | Vérifiez que l'antenne du poêle (à l'arrière, près du panneau d'urgence) est vissée jusqu'en butée, partie mobile vers le haut |
 | Le poêle change de réglage tout seul | La télécommande d'origine a encore ses piles |
 | Pas de température affichée | Sonde DS18B20 : vérifiez la résistance de 4,7 kΩ sur R1 et les fils (jaune sur SDA). Le module la recherche toutes les minutes |
+| Mode autonome : « heure inconnue » | Le module n'accède pas au serveur de temps : vérifiez l'accès à Internet ou indiquez un serveur NTP local dans **Réglages › Mode autonome**. En attendant, il régule sur la dernière consigne sans rallumer le poêle |
+| Le mode autonome s'est désactivé | Une commande manuelle a été envoyée (page web, Home Assistant, bouton) : réactivez-le |
 | `poele-mcz.local` introuvable | Utilisez l'adresse IP du module (voir votre box) |
 | Mot de passe de l'interface oublié | Réinstallez le module (étape 2, avec **Erase Flash**) puis refaites la configuration |
 

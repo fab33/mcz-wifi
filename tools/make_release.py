@@ -19,7 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, ".pio", "build", "d1_mini")
 FS_START = 0x300000  # eagle.flash.4m1m.ld
 FS_SIZE = 0xFA000
-PRIVATE_FILES = ("config.json", "state.json")
+PRIVATE_FILES = ("config.json", "state.json", "schedule.json")
 
 
 def run(*args):

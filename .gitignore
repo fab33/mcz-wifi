@@ -13,3 +13,6 @@ dist/
 
 # Réglages locaux de l'assistant
 .claude/
+
+# Démo de l'interface (tools/make_demo.py)
+build/

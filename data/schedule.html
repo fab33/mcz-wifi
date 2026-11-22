@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Programmation poêle MCZ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Programmation</h1>
+    <a href="index.html">‹ Poêle</a>
+  </header>
+
+  <section class="card">
+    <h2>Semaine</h2>
+    <div class="week" id="week"></div>
+    <div class="legend">
+      <span><i style="background:hsl(34 85% 80%)"></i>15 °C</span>
+      <span><i style="background:hsl(23 85% 59%)"></i>19,5 °C</span>
+      <span><i style="background:hsl(12 85% 38%)"></i>24 °C</span>
+      <span><i class="slot off" style="position:static;display:inline-block"></i>Arrêt</span>
+      <span>Vide : arrêt</span>
+    </div>
+    <p class="hint">Touchez une plage pour la modifier ou la supprimer, ou une zone vide pour y créer une plage.</p>
+    <div class="actions" style="margin-top:12px">
+      <button class="btn danger" id="clear-all">Vider la semaine</button>
+    </div>
+  </section>
+
+  <section class="card" id="editor">
+    <h2 id="ed-title">Nouvelle plage</h2>
+    <label for="ed-days">Jours</label>
+    <select id="ed-days"></select>
+    <div class="row">
+      <div><label for="ed-start">Début</label><input id="ed-start" type="time" step="300" value="06:00"></div>
+      <div><label for="ed-end">Fin</label><input id="ed-end" type="time" step="300" value="08:00"></div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="ed-action">Action</label>
+        <select id="ed-action">
+          <option value="temp">Température</option>
+          <option value="off">Arrêt</option>
+        </select>
+      </div>
+      <div><label for="ed-temp">Consigne (°C)</label><input id="ed-temp" type="number" min="5" max="30" step="0.5" value="20"></div>
+    </div>
+    <p class="hint">Fin à 00:00 = jusqu'à minuit. Une plage remplace ce qu'elle recouvre ; pour une
+      plage qui passe minuit, faites-en deux (fin à 00:00, puis début à 00:00 le lendemain).</p>
+    <div class="actions" style="margin-top:12px">
+      <button class="btn primary" id="ed-apply">Ajouter</button>
+      <button class="btn danger" id="ed-delete" hidden>Supprimer la plage</button>
+      <button class="btn" id="ed-cancel" hidden>Nouvelle plage</button>
+      <button class="btn danger" id="ed-erase">Effacer la période</button>
+    </div>
+    <p class="hint" id="ed-hint">« Effacer la période » vide l'intervalle choisi (de 00:00 à 00:00 : toute la journée).</p>
+  </section>
+
+  <section class="card">
+    <h2>Copier une journée</h2>
+    <div class="row">
+      <div><label for="cp-from">De</label><select id="cp-from"></select></div>
+      <div><label for="cp-to">Vers</label><select id="cp-to"></select></div>
+    </div>
+    <div class="actions" style="margin-top:12px">
+      <button class="btn" id="cp-go">Copier</button>
+    </div>
+  </section>
+
+  <div class="save-bar">
+    <button class="btn primary" id="save" disabled>Enregistrer</button>
+    <button class="btn" id="revert" disabled>Annuler les modifications</button>
+    <span class="dirty" id="dirty"></span>
+  </div>
+</main>
+<div id="toast"></div>
+<script src="common.js"></script>
+<script src="schedule.js"></script>
+</body>
+</html>

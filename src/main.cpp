@@ -11,11 +11,15 @@
 //   src/HomeAssistant MQTT + découverte Home Assistant
 //   src/Peripherals  LEDs et bouton du shield
 //   src/TempSensor   sonde de température DS18B20 optionnelle
+//   src/Clock        heure locale (NTP)
+//   src/Autonomous   mode autonome : programmation + régulation (lib/Thermostat)
 //   data/            pages web (HTML / CSS / JS)
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <Rfm69Tx.h>
 
+#include "Autonomous.h"
+#include "Clock.h"
 #include "HomeAssistant.h"
 #include "Network.h"
 #include "Peripherals.h"
@@ -52,6 +56,8 @@ void setup() {
   }
   stove.begin();
   tempSensor.begin();
+  sysClock.begin();
+  autonomous.begin(stove, tempSensor);
 
   network.begin();
   homeAssistant.begin();
@@ -64,5 +70,6 @@ void loop() {
   homeAssistant.loop();
   stove.loop();
   tempSensor.loop();
+  autonomous.loop();
   peripherals.loop();
 }

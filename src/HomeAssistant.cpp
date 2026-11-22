@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 
+#include "Autonomous.h"
 #include "Settings.h"
 #include "Stove.h"
 #include "TempSensor.h"
@@ -20,6 +21,7 @@ void HomeAssistant::begin() {
   _mqtt.setCallback([this](char* t, uint8_t* p, unsigned int l) { onMessage(t, p, l); });
   _stove.onChange([this]() { _statePending = true; });
   _temp.onChange([this]() { _tempPending = true; });
+  autonomous.onChange([this]() { _autoPending = true; });
   reconfigure();
 }
 
@@ -55,6 +57,7 @@ bool HomeAssistant::connect() {
   publishState();
   publishDiagnostics();
   publishTemperature();
+  publishAuto();
   return true;
 }
 
@@ -73,6 +76,7 @@ void HomeAssistant::loop() {
   _mqtt.loop();
   if (_statePending) publishState();
   if (_tempPending) publishTemperature();
+  if (_autoPending) publishAuto();
   if (millis() - _lastDiag > DIAG_INTERVAL_MS) publishDiagnostics();
 }
 
@@ -89,6 +93,7 @@ void HomeAssistant::onMessage(char* rawTopic, uint8_t* payload, unsigned int len
       publishDiscovery();
       publishState();
       publishTemperature();
+      publishAuto();
     }
     return;
   }
@@ -114,6 +119,12 @@ void HomeAssistant::onMessage(char* rawTopic, uint8_t* payload, unsigned int len
     ok = _stove.setPower(value.toInt());
   } else if (cmd == "fan") {
     ok = _stove.setFan(value == "auto" ? mcz::FAN_AUTO : value.toInt());
+  } else if (cmd == "auto") {
+    if (value == "on") autonomous.setEnabled(true);
+    else if (value == "off") autonomous.setEnabled(false);
+    else ok = false;
+    if (!ok) _autoPending = true;
+    return;
   } else if (cmd == "resend") {
     _stove.resend();
   } else {
@@ -144,6 +155,17 @@ void HomeAssistant::publishTemperature() {
   char buf[12];
   snprintf(buf, sizeof(buf), "%.1f", _temp.celsius());
   _mqtt.publish(topic("/temperature").c_str(), buf, true);
+}
+
+void HomeAssistant::publishAuto() {
+  _autoPending = false;
+  JsonDocument doc;
+  autonomous.statusToJson(doc.to<JsonObject>());
+  if (doc["target"].isUnbound()) doc["target"] = nullptr;
+  if (doc["phase"].isUnbound()) doc["phase"] = "inactive";
+  String out;
+  serializeJson(doc, out);
+  _mqtt.publish(topic("/auto").c_str(), out.c_str(), true);
 }
 
 void HomeAssistant::publishDiagnostics() {
@@ -246,6 +268,35 @@ void HomeAssistant::publishDiscovery() {
     doc["state_class"] = "measurement";
     doc["entity_category"] = "diagnostic";
     send("sensor", "rssi", doc);
+  }
+  {
+    JsonDocument doc;
+    fillCommon(doc, "auto", "Mode autonome");
+    doc["icon"] = "mdi:calendar-clock";
+    doc["state_topic"] = base + "/auto";
+    doc["value_template"] = "{{ 'ON' if value_json.enabled else 'OFF' }}";
+    doc["command_topic"] = base + "/set/auto";
+    send("switch", "auto", doc);
+  }
+  {
+    JsonDocument doc;
+    fillCommon(doc, "target", "Consigne");
+    doc["icon"] = "mdi:thermometer-auto";
+    doc["state_topic"] = base + "/auto";
+    doc["value_template"] = "{{ value_json.target }}";  // null -> « inconnu » (arrêt programmé)
+    doc["device_class"] = "temperature";
+    doc["unit_of_measurement"] = "°C";
+    send("sensor", "target", doc);
+  }
+  {
+    JsonDocument doc;
+    fillCommon(doc, "phase", "Régulation");
+    doc["icon"] = "mdi:state-machine";
+    doc["state_topic"] = base + "/auto";
+    doc["value_template"] =
+        "{{ {'off':'Arrêt','startup':'Allumage','heat':'Chauffe','hold':'Maintien'}"
+        ".get(value_json.phase, 'Inactive') }}";
+    send("sensor", "phase", doc);
   }
   _tempDiscovered = false;
   if (_temp.present()) publishTemperatureDiscovery();

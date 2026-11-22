@@ -63,10 +63,17 @@ void Stove::send(bool beep) {
   for (auto& l : _listeners) l();  // publie aussi les infos d'émission
 }
 
-void Stove::changed() {
+void Stove::changed(bool manual, bool beep) {
   _dirty = true;
-  request(true);
+  request(beep);
+  if (manual)
+    for (auto& l : _manualListeners) l();
   for (auto& l : _listeners) l();
+}
+
+void Stove::applyAutomatic(const StoveState& s, bool beep) {
+  _state = s;
+  changed(false, beep);
 }
 
 void Stove::setOn(bool on) {

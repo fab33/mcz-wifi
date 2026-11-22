@@ -34,6 +34,9 @@ void Settings::setDefaults() {
   stove.resendSeconds = DEFAULT_RESEND_S;
 
   sensor = SensorSettings();
+  time.tz = DEFAULT_TZ;
+  time.ntp = DEFAULT_NTP;
+  autoMode = AutoSettings();
 
   webPassword = "";
 }
@@ -82,6 +85,19 @@ static void writeAll(const Settings& s, JsonObject root, bool withSecrets) {
   JsonObject se = root["sensor"].to<JsonObject>();
   se["offset"] = s.sensor.offset;
 
+  JsonObject ti = root["time"].to<JsonObject>();
+  ti["tz"] = s.time.tz;
+  ti["ntp"] = s.time.ntp;
+
+  JsonObject a = root["auto"].to<JsonObject>();
+  a["hysteresis"] = s.autoMode.hysteresis;
+  a["startup_power"] = s.autoMode.startupPower;
+  a["startup_min"] = s.autoMode.startupMin;
+  a["heat_power"] = s.autoMode.heatPower;
+  a["hold_power"] = s.autoMode.holdPower;
+  a["hold_min"] = s.autoMode.holdMin;
+  a["beep"] = s.autoMode.beep;
+
   if (withSecrets) root["web_password"] = s.webPassword;
   else root["has_web_password"] = s.webPassword.length() > 0;
 }
@@ -125,6 +141,22 @@ void Settings::fromJson(JsonObjectConst root) {
     JsonVariantConst v = se["offset"];
     if (v.is<float>()) sensor.offset = v.as<float>();  // accepte aussi un entier
   }
+  JsonObjectConst ti = root["time"];
+  if (!ti.isNull()) {
+    readField(ti, "tz", time.tz);
+    readField(ti, "ntp", time.ntp);
+  }
+  JsonObjectConst a = root["auto"];
+  if (!a.isNull()) {
+    JsonVariantConst h = a["hysteresis"];
+    if (h.is<float>()) autoMode.hysteresis = h.as<float>();
+    readField(a, "startup_power", autoMode.startupPower);
+    readField(a, "startup_min", autoMode.startupMin);
+    readField(a, "heat_power", autoMode.heatPower);
+    readField(a, "hold_power", autoMode.holdPower);
+    readField(a, "hold_min", autoMode.holdMin);
+    readField(a, "beep", autoMode.beep);
+  }
   readSecret(root, "web_password", webPassword);
   if (root["clear_web_password"] | false) webPassword = "";
 
@@ -145,6 +177,17 @@ void Settings::fromJson(JsonObjectConst root) {
   stove.fan2 &= 0x07;
   if (isnan(sensor.offset)) sensor.offset = 0;
   sensor.offset = roundf(constrain(sensor.offset, -10.0f, 10.0f) * 10.0f) / 10.0f;
+  time.tz.trim();
+  time.ntp.trim();
+  if (time.tz.isEmpty()) time.tz = DEFAULT_TZ;
+  if (time.ntp.isEmpty()) time.ntp = DEFAULT_NTP;
+  if (isnan(autoMode.hysteresis)) autoMode.hysteresis = 1.0;
+  autoMode.hysteresis = roundf(constrain(autoMode.hysteresis, 0.2f, 5.0f) * 10.0f) / 10.0f;
+  autoMode.startupPower = constrain(autoMode.startupPower, (uint8_t)1, (uint8_t)5);
+  autoMode.heatPower = constrain(autoMode.heatPower, (uint8_t)1, (uint8_t)5);
+  autoMode.holdPower = constrain(autoMode.holdPower, (uint8_t)1, (uint8_t)5);
+  autoMode.startupMin = constrain(autoMode.startupMin, (uint16_t)0, (uint16_t)120);
+  autoMode.holdMin = constrain(autoMode.holdMin, (uint16_t)1, (uint16_t)120);
 }
 
 bool Settings::load() {

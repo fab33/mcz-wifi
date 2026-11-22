@@ -3,6 +3,8 @@
 #include <LittleFS.h>
 #include <Rfm69Tx.h>
 
+#include "Autonomous.h"
+#include "Clock.h"
 #include "HomeAssistant.h"
 #include "Network.h"
 #include "Settings.h"
@@ -23,6 +25,9 @@ void WebUi::begin() {
   _server.on("/api/status", HTTP_GET, [this]() { handleStatus(); });
   _server.on("/api/stove", HTTP_POST, [this]() { handleStove(); });
   _server.on("/api/stove/resend", HTTP_POST, [this]() { handleResend(); });
+  _server.on("/api/auto", HTTP_POST, [this]() { handleAuto(); });
+  _server.on("/api/schedule", HTTP_GET, [this]() { handleGetSchedule(); });
+  _server.on("/api/schedule", HTTP_POST, [this]() { handlePostSchedule(); });
   _server.on("/api/settings", HTTP_GET, [this]() { handleGetSettings(); });
   _server.on("/api/settings", HTTP_POST, [this]() { handlePostSettings(); });
   _server.on("/api/wifi/scan", HTTP_GET, [this]() { handleScan(); });
@@ -87,6 +92,7 @@ void WebUi::handleStatus() {
   if (!authenticate()) return;
   JsonDocument doc;
   _stove.toJson(doc["stove"].to<JsonObject>());
+  autonomous.statusToJson(doc["auto"].to<JsonObject>());
 
   JsonObject dev = doc["device"].to<JsonObject>();
   dev["version"] = FIRMWARE_VERSION;
@@ -139,6 +145,35 @@ void WebUi::handleResend() {
   sendJson(200, doc);
 }
 
+void WebUi::handleAuto() {
+  if (!authenticate()) return;
+  JsonDocument body;
+  if (!readJsonBody(body)) return;
+  if (!body["enabled"].is<bool>()) return sendError(400, "\"enabled\" doit valoir true ou false");
+  autonomous.setEnabled(body["enabled"].as<bool>());
+  JsonDocument doc;
+  autonomous.statusToJson(doc.to<JsonObject>());
+  sendJson(200, doc);
+}
+
+void WebUi::handleGetSchedule() {
+  if (!authenticate()) return;
+  JsonDocument doc;
+  autonomous.scheduleToJson(doc.to<JsonObject>());
+  sendJson(200, doc);
+}
+
+void WebUi::handlePostSchedule() {
+  if (!authenticate()) return;
+  JsonDocument body;
+  if (!readJsonBody(body)) return;
+  String err;
+  if (!autonomous.scheduleFromJson(body.as<JsonObjectConst>(), err)) return sendError(400, err);
+  JsonDocument doc;
+  autonomous.scheduleToJson(doc.to<JsonObject>());
+  sendJson(200, doc);
+}
+
 void WebUi::handleGetSettings() {
   if (!authenticate()) return;
   JsonDocument doc;
@@ -158,6 +193,7 @@ void WebUi::handlePostSettings() {
 
   _stove.applyRadioSettings();
   if (!body["mqtt"].isNull()) _ha.reconfigure();
+  if (!body["time"].isNull()) sysClock.begin();
 
   bool wifiChanged = settings.wifi.ssid != oldSsid || settings.wifi.password != oldPass;
   bool needsReboot = settings.wifi.hostname != oldHost || settings.webPassword != oldWebPass;
@@ -210,6 +246,7 @@ void WebUi::handleFactoryReset() {
   if (!authenticate()) return;
   LittleFS.remove(SETTINGS_FILE);
   LittleFS.remove(STATE_FILE);
+  LittleFS.remove(SCHEDULE_FILE);
   JsonDocument doc;
   doc["ok"] = true;
   sendJson(200, doc);
@@ -243,7 +280,7 @@ void WebUi::handleNotFound() {
     f.close();
     return;
   }
-  if (path == "/index.html" || path == "/settings.html") {
+  if (path == "/index.html" || path == "/settings.html" || path == "/schedule.html") {
     _server.send_P(200, "text/html", FALLBACK_PAGE);
     return;
   }

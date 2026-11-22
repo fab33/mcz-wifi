@@ -28,6 +28,22 @@ struct RadioSettings {
   uint8_t repeats;
 };
 
+struct TimeSettings {
+  String tz;   // fuseau horaire POSIX
+  String ntp;  // serveur NTP
+};
+
+// Paramètres de régulation du mode autonome (voir lib/Thermostat).
+struct AutoSettings {
+  float hysteresis = 1.0;    // allumage à consigne - écart (°C)
+  uint8_t startupPower = 5;
+  uint16_t startupMin = 20;
+  uint8_t heatPower = 3;
+  uint8_t holdPower = 1;
+  uint16_t holdMin = 15;
+  bool beep = true;          // bip du poêle sur les changements automatiques
+};
+
 struct SensorSettings {
   float offset = 0;  // correction de la sonde de température (°C)
 };
@@ -45,6 +61,8 @@ class Settings {
   RadioSettings radio;
   StoveSettings stove;
   SensorSettings sensor;
+  TimeSettings time;
+  AutoSettings autoMode;
   String webPassword;  // vide = pas d'authentification sur l'interface web
 
   void setDefaults();

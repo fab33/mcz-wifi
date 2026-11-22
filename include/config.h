@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define FIRMWARE_NAME "mcz-wifi"
-#define FIRMWARE_VERSION "1.1.0"
+#define FIRMWARE_VERSION "1.2.0"
 
 // --- Brochage du shield WeMos RFM69 (ch2i) sur Wemos D1 mini --------------
 // SPI matériel : SCK = GPIO14 (D5), MISO = GPIO12 (D6), MOSI = GPIO13 (D7)
@@ -33,6 +33,13 @@ static const uint8_t DEFAULT_REPEATS = 5;
 static const uint16_t DEFAULT_RESEND_S = 300;          // renvoi silencieux, comme la télécommande (0 = jamais)
 static const uint16_t DEFAULT_MQTT_PORT = 1883;
 
+// --- Mode autonome -----------------------------------------------------------
+// Fuseau horaire POSIX (France : heure d'été du dernier dimanche de mars au
+// dernier dimanche d'octobre) et serveur de temps.
+static const char* const DEFAULT_TZ = "CET-1CEST,M3.5.0,M10.5.0/3";
+static const char* const DEFAULT_NTP = "pool.ntp.org";
+static const uint32_t AUTO_INTERVAL_MS = 5000;         // période de la régulation
+
 // --- Réseau ----------------------------------------------------------------
 static const char* const AP_PASSWORD = "mczconfig";    // mot de passe du point d'accès de configuration
 static const uint32_t WIFI_CONNECT_TIMEOUT_MS = 20000;
@@ -42,3 +49,4 @@ static const uint32_t BUTTON_RESET_MS = 8000;          // appui long : effacemen
 // --- Fichiers LittleFS ------------------------------------------------------
 static const char* const SETTINGS_FILE = "/config.json";
 static const char* const STATE_FILE = "/state.json";
+static const char* const SCHEDULE_FILE = "/schedule.json";  // programmation + mode autonome actif

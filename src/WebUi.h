@@ -1,8 +1,11 @@
 // Serveur web : pages statiques (data/ -> LittleFS) et API REST JSON.
 //
 //   GET  /api/status          état du poêle + infos module (+ température si sonde)
-//   POST /api/stove           {"on":true,"power":3,"fan":"auto"}
+//   POST /api/stove           {"on":true,"power":3,"fan":"auto"} (désactive le mode autonome)
 //   POST /api/stove/resend    renvoie la dernière commande
+//   POST /api/auto            {"enabled":true} active / désactive le mode autonome
+//   GET  /api/schedule        programmation du mode autonome
+//   POST /api/schedule        remplace la programmation
 //   GET  /api/settings        réglages (sans les mots de passe)
 //   POST /api/settings        réglages partiels
 //   GET  /api/wifi/scan       réseaux WiFi visibles
@@ -38,6 +41,9 @@ class WebUi {
   void handleStatus();
   void handleStove();
   void handleResend();
+  void handleAuto();
+  void handleGetSchedule();
+  void handlePostSchedule();
   void handleGetSettings();
   void handlePostSettings();
   void handleScan();

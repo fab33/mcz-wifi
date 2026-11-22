@@ -94,6 +94,41 @@
     </section>
 
     <section class="card">
+      <h2>Mode autonome</h2>
+      <p class="hint" style="margin-top:0">La programmation se fait depuis la page
+        <a href="schedule.html">Programmation</a>. Ces réglages définissent la régulation.</p>
+      <div class="row">
+        <div><label for="auto-hyst">Allumage sous la consigne de (°C)</label>
+          <input id="auto-hyst" type="number" min="0.2" max="5" step="0.1" data-key="auto.hysteresis" data-type="float"></div>
+        <div><label for="auto-heat">Puissance de chauffe</label>
+          <input id="auto-heat" type="number" min="1" max="5" data-key="auto.heat_power" data-type="int"></div>
+      </div>
+      <div class="row">
+        <div><label for="auto-sp">Puissance à l'allumage</label>
+          <input id="auto-sp" type="number" min="1" max="5" data-key="auto.startup_power" data-type="int"></div>
+        <div><label for="auto-sm">Durée de l'allumage (min)</label>
+          <input id="auto-sm" type="number" min="0" max="120" data-key="auto.startup_min" data-type="int"></div>
+      </div>
+      <div class="row">
+        <div><label for="auto-hp">Puissance de maintien</label>
+          <input id="auto-hp" type="number" min="1" max="5" data-key="auto.hold_power" data-type="int"></div>
+        <div><label for="auto-hm">Durée du maintien (min)</label>
+          <input id="auto-hm" type="number" min="1" max="120" data-key="auto.hold_min" data-type="int"></div>
+      </div>
+      <label class="check"><input type="checkbox" data-key="auto.beep"> Bip du poêle lors des changements automatiques</label>
+      <p class="hint">Le poêle s'allume quand la température descend sous la consigne moins l'écart,
+        chauffe à pleine puissance pendant l'allumage, puis à la puissance de chauffe jusqu'à la consigne.
+        Il passe alors en maintien : si la température n'a pas baissé à la fin du maintien, il est
+        éteint, sinon il repart en chauffe. La ventilation reste en automatique.</p>
+      <div class="row">
+        <div><label for="time-tz">Fuseau horaire (POSIX)</label><input id="time-tz" data-key="time.tz"></div>
+        <div><label for="time-ntp">Serveur de temps (NTP)</label><input id="time-ntp" data-key="time.ntp"></div>
+      </div>
+      <p class="hint">France, Belgique, Suisse : <code>CET-1CEST,M3.5.0,M10.5.0/3</code> (heure d'été
+        comprise). Le module doit avoir accès à Internet, ou indiquez un serveur NTP local (box, Home Assistant).</p>
+    </section>
+
+    <section class="card">
       <h2>Sonde de température</h2>
       <label for="sensor-offset">Correction (°C)</label>
       <input id="sensor-offset" type="number" min="-10" max="10" step="0.1" data-key="sensor.offset" data-type="float">

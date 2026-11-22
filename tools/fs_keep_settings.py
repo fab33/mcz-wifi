@@ -4,7 +4,7 @@
 # réglages (WiFi, MQTT, mots de passe) et le dernier état du poêle. Avant
 # l'envoi, ce script :
 #   1. lit le système de fichiers actuel de la carte (liaison série) ;
-#   2. en extrait config.json et state.json ;
+#   2. en extrait config.json, state.json et schedule.json ;
 #   3. reconstruit l'image avec le contenu de data/ + ces deux fichiers.
 #
 # Une copie de la dernière sauvegarde est gardée dans .pio/fs_backup/
@@ -17,7 +17,7 @@ import shutil
 
 Import("env")  # noqa: F821  (fourni par PlatformIO)
 
-KEEP_FILES = ("config.json", "state.json")
+KEEP_FILES = ("config.json", "state.json", "schedule.json")
 
 
 def fail(msg):

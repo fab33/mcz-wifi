@@ -9,9 +9,12 @@
 //   <base>/set/fan       1..5 / auto
 //   <base>/set/resend    (n'importe quoi) renvoie la dernière commande
 //   <base>/temperature   température de la sonde DS18B20 en °C (si présente)
+//   <base>/auto          mode autonome {"enabled":true,"target":20.5,"phase":"heat",...}
+//   <base>/set/auto      ON / OFF : active / désactive le mode autonome
 //
 // Entités créées dans HA : interrupteur, puissance, ventilation, bouton
-// "Renvoyer", signal WiFi, température (seulement si une sonde a été détectée).
+// "Renvoyer", signal WiFi, température (seulement si une sonde a été détectée),
+// mode autonome (interrupteur), consigne et phase de régulation.
 #pragma once
 
 #include <Arduino.h>
@@ -40,6 +43,7 @@ class HomeAssistant {
   void publishDiagnostics();
   void publishTemperature();
   void publishTemperatureDiscovery();
+  void publishAuto();
   String topic(const char* suffix) const;
 
   Stove& _stove;
@@ -50,6 +54,7 @@ class HomeAssistant {
   uint32_t _lastDiag = 0;
   bool _statePending = false;
   bool _tempPending = false;
+  bool _autoPending = false;
   bool _tempDiscovered = false;
   String _lastError;
 };
