@@ -285,6 +285,14 @@ partie *Firmware*. Les réglages sont conservés.
 
 N'utilisez pas le fichier `…-complet.bin` pour une mise à jour : il effacerait vos réglages.
 
+**Si la version apporte une nouvelle interface web** (c'est le cas de la 1.2.0 : page
+Programmation, mode autonome), le firmware seul ne suffit pas : l'ancienne interface reste
+en place. Après le firmware, envoyez **`mcz-wifi-x.y.z-interface.bin`** dans la partie
+*FileSystem* de la même page. **Cette étape efface les réglages** : notez-les avant (WiFi,
+identifiant du poêle, MQTT), puis reconfigurez le module comme à l'installation (réseau
+`MCZ-xxxxxx`). Avec le câble USB et PlatformIO, `pio run -t uploadfs` met l'interface à jour
+en conservant les réglages.
+
 ## 8. Dépannage
 
 | Problème | Solution |

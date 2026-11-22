@@ -5,6 +5,8 @@
                                    l'adresse 0x0 sur un module neuf (efface les réglages)
   mcz-wifi-<version>-firmware.bin  firmware seul, pour la mise à jour par l'interface web
                                    (conserve les réglages)
+  mcz-wifi-<version>-interface.bin interface web seule (image LittleFS), pour la partie
+                                   « FileSystem » de la mise à jour (efface les réglages)
 
 Usage : python3 tools/make_release.py   (depuis la racine du projet)
 """
@@ -71,6 +73,7 @@ def main():
         f.write(b"\xff" * (FS_START - len(firmware)))
         f.write(fs)
     shutil.copy(os.path.join(BUILD, "firmware.bin"), os.path.join(dist, "mcz-wifi-%s-firmware.bin" % ver))
+    shutil.copy(fs_image, os.path.join(dist, "mcz-wifi-%s-interface.bin" % ver))
     for name in sorted(os.listdir(dist)):
         print("dist/%s (%d octets)" % (name, os.path.getsize(os.path.join(dist, name))))
 
