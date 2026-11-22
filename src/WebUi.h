@@ -11,12 +11,19 @@
 //   GET  /api/wifi/scan       réseaux WiFi visibles
 //   POST /api/reboot
 //   POST /api/factory-reset   efface tous les réglages
-//   GET  /update              mise à jour du firmware par le navigateur
+//   GET  /update              page de mise à jour (firmware ou interface web)
+//   POST /update              envoi d'un fichier : champ "firmware" ou "filesystem".
+//                             L'interface web (image LittleFS) remplace tout le
+//                             système de fichiers : les réglages, l'état du poêle
+//                             et la programmation sont gardés en mémoire pendant
+//                             l'envoi puis réécrits dans la nouvelle image.
 #pragma once
 
 #include <ArduinoJson.h>
-#include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WebServer.h>
+
+#include <utility>
+#include <vector>
 
 class Stove;
 class HomeAssistant;
@@ -50,12 +57,21 @@ class WebUi {
   void handleReboot();
   void handleFactoryReset();
   void handleNotFound();
+  void handleUpdatePage();
+  void handleUpdateDone();
+  void handleUpdateUpload();
+  void keepPrivateFiles();
+  size_t restorePrivateFiles();
 
   Stove& _stove;
   HomeAssistant& _ha;
   Rfm69Tx& _radio;
   TempSensor& _temp;
   ESP8266WebServer _server;
-  ESP8266HTTPUpdateServer _updater;
+  // Mise à jour en cours
+  bool _updAuth = false;
+  bool _updFs = false;
+  String _updError;
+  std::vector<std::pair<String, String>> _kept;  // fichiers privés (chemin, contenu)
   uint32_t _rebootAt = 0;
 };

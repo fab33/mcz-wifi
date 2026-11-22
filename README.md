@@ -279,19 +279,22 @@ sert plus, supprimez-le dans Home Assistant), interrupteur **Mode autonome**, ca
 
 ## 7. Mettre à jour le module
 
-Téléchargez **`mcz-wifi-x.y.z-firmware.bin`** depuis la [dernière version](../../releases/latest),
-puis dans **Réglages › Maintenance › Mettre à jour le firmware**, choisissez ce fichier dans la
-partie *Firmware*. Les réglages sont conservés.
+Téléchargez depuis la [dernière version](../../releases/latest) les fichiers
+**`mcz-wifi-x.y.z-firmware.bin`** et **`mcz-wifi-x.y.z-interface.bin`**, puis ouvrez
+**Réglages › Maintenance › Mettre à jour** :
+
+1. partie **Firmware** : envoyez `…-firmware.bin`. Le module redémarre ;
+2. revenez sur la même page, partie **Interface web** : envoyez `…-interface.bin`. Le module
+   redémarre.
+
+Les réglages, l'état du poêle et la programmation sont conservés aux deux étapes. Envoyez
+toujours le firmware en premier : c'est lui qui conserve les réglages lors de l'envoi de
+l'interface.
+
+**Depuis la version 1.1.0**, faites d'abord l'étape 1 avec la version 1.2.1 ou plus récente.
+L'ancien firmware ne conservait pas les réglages lors de l'envoi de l'interface.
 
 N'utilisez pas le fichier `…-complet.bin` pour une mise à jour : il effacerait vos réglages.
-
-**Si la version apporte une nouvelle interface web** (c'est le cas de la 1.2.0 : page
-Programmation, mode autonome), le firmware seul ne suffit pas : l'ancienne interface reste
-en place. Après le firmware, envoyez **`mcz-wifi-x.y.z-interface.bin`** dans la partie
-*FileSystem* de la même page. **Cette étape efface les réglages** : notez-les avant (WiFi,
-identifiant du poêle, MQTT), puis reconfigurez le module comme à l'installation (réseau
-`MCZ-xxxxxx`). Avec le câble USB et PlatformIO, `pio run -t uploadfs` met l'interface à jour
-en conservant les réglages.
 
 ## 8. Dépannage
 

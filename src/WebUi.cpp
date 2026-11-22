@@ -1,6 +1,8 @@
 #include "WebUi.h"
 
 #include <LittleFS.h>
+#include <Updater.h>
+#include <flash_hal.h>
 #include <Rfm69Tx.h>
 
 #include "Autonomous.h"
@@ -19,7 +21,29 @@ static const char FALLBACK_PAGE[] PROGMEM =
     "<!doctype html><meta charset=utf-8><title>MCZ WiFi</title>"
     "<h1>Interface web absente</h1><p>Le système de fichiers n'a pas été téléversé. "
     "Lancez <code>pio run -t uploadfs</code>, ou utilisez l'API : <code>/api/status</code>.</p>"
-    "<p><a href=/update>Mise à jour du firmware</a></p>";
+    "<p><a href=/update>Mise à jour</a></p>";
+
+// Fichiers personnels conservés lors de l'envoi d'une nouvelle interface web.
+static const char* const PRIVATE_FILES[] = {SETTINGS_FILE, STATE_FILE, SCHEDULE_FILE};
+
+static const char UPDATE_PAGE[] PROGMEM = R"(<!doctype html><html lang=fr><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>Mise à jour MCZ WiFi</title>
+<style>body{font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:16px;line-height:1.45}
+form{border:1px solid #ccc;border-radius:10px;padding:14px;margin:14px 0}h2{font-size:1.05em;margin:0 0 6px}
+p{margin:6px 0;color:#555}input,button{font:inherit;margin-top:8px}button{padding:6px 14px}
+#msg{font-weight:600}</style>
+<h1>Mise à jour</h1><p><a href=/>‹ Retour</a></p>
+<form method=POST enctype=multipart/form-data><h2>Firmware</h2>
+<p>Fichier <code>mcz-wifi-x.y.z-firmware.bin</code>.</p>
+<input type=file accept=.bin,.bin.gz name=firmware required><br><button>Envoyer le firmware</button></form>
+<form method=POST enctype=multipart/form-data><h2>Interface web</h2>
+<p>Fichier <code>mcz-wifi-x.y.z-interface.bin</code>, après le firmware de la même version.
+Les réglages, l'état du poêle et la programmation sont conservés.</p>
+<input type=file accept=.bin name=filesystem required><br><button>Envoyer l'interface</button></form>
+<p id=msg></p>
+<script>document.querySelectorAll("form").forEach(f=>f.addEventListener("submit",()=>{
+document.querySelectorAll("button").forEach(b=>b.disabled=true);
+document.getElementById("msg").textContent="Envoi en cours, ne fermez pas la page…"}))</script>)";
 
 void WebUi::begin() {
   _server.on("/api/status", HTTP_GET, [this]() { handleStatus(); });
@@ -35,9 +59,9 @@ void WebUi::begin() {
   _server.on("/api/factory-reset", HTTP_POST, [this]() { handleFactoryReset(); });
   _server.onNotFound([this]() { handleNotFound(); });
 
-  // Mise à jour OTA par le navigateur (protégée par le mot de passe web s'il existe).
-  if (settings.webPassword.length()) _updater.setup(&_server, "/update", WEB_USER, settings.webPassword);
-  else _updater.setup(&_server, "/update");
+  // Mise à jour par le navigateur (protégée par le mot de passe web s'il existe).
+  _server.on("/update", HTTP_GET, [this]() { handleUpdatePage(); });
+  _server.on("/update", HTTP_POST, [this]() { handleUpdateDone(); }, [this]() { handleUpdateUpload(); });
 
   _server.begin();
 }
@@ -285,4 +309,94 @@ void WebUi::handleNotFound() {
     return;
   }
   _server.send(404, "text/plain", "Introuvable");
+}
+
+// --- mise à jour -----------------------------------------------------------
+
+void WebUi::handleUpdatePage() {
+  if (!authenticate()) return;
+  _server.send_P(200, "text/html; charset=utf-8", UPDATE_PAGE);
+}
+
+void WebUi::handleUpdateDone() {
+  if (!_updAuth) return _server.requestAuthentication(BASIC_AUTH, "MCZ WiFi");
+  _updAuth = false;
+  if (_updError.length() || Update.hasError()) {
+    String msg = _updError.length() ? _updError : String("échec");
+    _server.send(500, "text/html; charset=utf-8",
+                 "<meta charset=utf-8><p>Échec de la mise à jour : " + msg + "</p><p><a href=/update>Retour</a></p>");
+    if (_updFs) _rebootAt = millis() + 1000;  // interface incomplète : repartir proprement
+    return;
+  }
+  _server.send(200, "text/html; charset=utf-8",
+               "<meta charset=utf-8><meta http-equiv=refresh content=\"15;URL=/\">"
+               "<p>Mise à jour réussie, redémarrage du module…</p>");
+  _rebootAt = millis() + 500;
+}
+
+void WebUi::keepPrivateFiles() {
+  _kept.clear();
+  for (const char* path : PRIVATE_FILES) {
+    File f = LittleFS.open(path, "r");
+    if (!f) continue;
+    _kept.emplace_back(path, f.readString());
+    f.close();
+  }
+}
+
+size_t WebUi::restorePrivateFiles() {
+  size_t n = 0;
+  if (LittleFS.begin()) {
+    for (auto& kv : _kept) {
+      File f = LittleFS.open(kv.first, "w");
+      if (!f) continue;
+      if (f.print(kv.second) == kv.second.length()) n++;
+      f.close();
+    }
+  }
+  _kept.clear();
+  return n;
+}
+
+void WebUi::handleUpdateUpload() {
+  HTTPUpload& up = _server.upload();
+  if (up.status == UPLOAD_FILE_START) {
+    _updError = "";
+    _updFs = false;
+    _updAuth = authenticate();
+    if (!_updAuth) return;
+    _updFs = up.name == "filesystem";
+    Serial.printf("[MAJ] %s : %s\n", _updFs ? "interface" : "firmware", up.filename.c_str());
+    bool ok;
+    if (_updFs) {
+      keepPrivateFiles();
+      Serial.printf("[MAJ] %u fichier(s) de réglages conservé(s) en mémoire\n", (unsigned)_kept.size());
+      LittleFS.end();
+      ok = Update.begin((size_t)FS_end - (size_t)FS_start, U_FS);
+    } else {
+      ok = Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000, U_FLASH);
+    }
+    if (!ok) _updError = Update.getErrorString();
+  } else if (!_updAuth || _updError.length()) {
+    if (up.status == UPLOAD_FILE_END || up.status == UPLOAD_FILE_ABORTED) {
+      if (_updFs) restorePrivateFiles();
+    }
+  } else if (up.status == UPLOAD_FILE_WRITE) {
+    if (Update.write(up.buf, up.currentSize) != up.currentSize) _updError = Update.getErrorString();
+  } else if (up.status == UPLOAD_FILE_END) {
+    if (!Update.end(true)) _updError = Update.getErrorString();
+    Serial.printf("[MAJ] %s (%u octets)\n", _updError.length() ? _updError.c_str() : "terminée",
+                  (unsigned)up.totalSize);
+    if (_updFs) {
+      // Le système de fichiers vient d'être remplacé (ou est incomplet en cas
+      // d'échec) : les réglages sont réécrits dans tous les cas.
+      size_t n = restorePrivateFiles();
+      Serial.printf("[MAJ] %u fichier(s) de réglages restauré(s)\n", (unsigned)n);
+    }
+  } else if (up.status == UPLOAD_FILE_ABORTED) {
+    Update.end();
+    _updError = "envoi interrompu";
+    if (_updFs) restorePrivateFiles();
+  }
+  delay(0);
 }

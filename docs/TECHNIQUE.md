@@ -40,8 +40,14 @@ pio device monitor     # console série, 115200 bauds
 ```
 
 Les deux téléversements sont nécessaires la première fois. Ensuite, le firmware peut être mis à
-jour sans câble : page **Réglages › Mettre à jour le firmware** ou `pio run -e ota -t upload`
+jour sans câble : page **Réglages › Mettre à jour** ou `pio run -e ota -t upload`
 (adapter `upload_port` dans `platformio.ini`).
+
+La page `/update` accepte aussi l'image LittleFS de l'interface (`…-interface.bin`, champ
+`filesystem`). Cette image remplace tout le système de fichiers. Le firmware lit donc d'abord
+`config.json`, `state.json` et `schedule.json` en mémoire, écrit l'image, puis les réécrit dans
+le nouveau système de fichiers avant de redémarrer. En cas d'échec de l'envoi, ils sont aussi
+réécrits (le système de fichiers est reformaté s'il est illisible).
 
 ### Conservation des réglages avec `uploadfs`
 
@@ -237,7 +243,8 @@ carte n'est nécessaire. Le flux complet (5 répétitions) tient en 125 octets.
 | GET | `/api/wifi/scan` | réseaux WiFi visibles |
 | POST | `/api/reboot` | redémarrage |
 | POST | `/api/factory-reset` | efface tous les réglages |
-| GET | `/update` | mise à jour du firmware par le navigateur |
+| GET | `/update` | page de mise à jour (firmware ou interface web) |
+| POST | `/update` | fichier `firmware` ou `filesystem` (réglages conservés) |
 
 ```sh
 curl http://poele-mcz.local/api/status

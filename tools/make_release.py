@@ -6,7 +6,7 @@
   mcz-wifi-<version>-firmware.bin  firmware seul, pour la mise à jour par l'interface web
                                    (conserve les réglages)
   mcz-wifi-<version>-interface.bin interface web seule (image LittleFS), pour la partie
-                                   « FileSystem » de la mise à jour (efface les réglages)
+                                   « Interface web » de la mise à jour (conserve les réglages)
 
 Usage : python3 tools/make_release.py   (depuis la racine du projet)
 """
