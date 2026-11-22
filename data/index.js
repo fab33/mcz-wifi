@@ -78,9 +78,12 @@ function renderDevice(d) {
     ["Radio", r.present ? `${dot("ok")}RFM69 (v0x${r.version.toString(16)})` : `${dot("err")}module absent`],
   ];
   const t = d.temperature;
-  if (t && t.present) {
-    rows.push(["Température", t.celsius !== undefined
-      ? `${t.celsius.toFixed(1).replace(".", ",")} °C` : `${dot("warn")}mesure en cours…`]);
+  // Sonde DS18B20 : toujours affichée, pour vérifier son branchement (le
+  // module la recherche toutes les minutes, sans redémarrage).
+  if (t) {
+    rows.push(["Température", !t.present ? `${dot("")}non détectée`
+      : t.celsius !== undefined ? `${dot("ok")}${t.celsius.toFixed(1).replace(".", ",")} °C`
+      : `${dot("warn")}détectée, mesure en cours…`]);
   }
   rows.push(
     ["Version", d.version],
@@ -106,8 +109,11 @@ async function send(cmd) {
   busy = true;
   document.querySelectorAll("button").forEach((b) => (b.disabled = true));
   try {
+    // Poêle arrêté : puissance et ventilation sont seulement mémorisées, sans
+    // émission (le poêle biperait pour rien).
+    const stored = current && !current.on && !("on" in cmd);
     renderStove(await api("/api/stove", cmd));
-    toast("Commande envoyée");
+    toast(stored ? "Réglage mémorisé : appliqué au prochain allumage" : "Commande envoyée");
   } catch (e) {
     toast(e.message, true);
   } finally {

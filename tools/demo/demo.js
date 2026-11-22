@@ -177,8 +177,9 @@
     };
   }
 
-  function manual() {
+  function manual(transmit = true) {
     if (S.auto.enabled) S.auto.enabled = false;
+    if (!transmit) return;  // poêle arrêté : réglage seulement mémorisé
     S.txCount++;
     S.lastTx = S.uptime;
   }
@@ -214,7 +215,7 @@
         if ("on" in body) n.on = !!body.on;
         if ("power" in body) n.power = body.power;
         if ("fan" in body) n.fan = body.fan;
-        manual();
+        manual(n.on || "on" in body);
         S.stove = n;
         return [200, status().stove];
       }

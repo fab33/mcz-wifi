@@ -5,7 +5,7 @@
 # l'envoi, ce script :
 #   1. lit le système de fichiers actuel de la carte (liaison série) ;
 #   2. en extrait config.json, state.json et schedule.json ;
-#   3. reconstruit l'image avec le contenu de data/ + ces deux fichiers.
+#   3. reconstruit l'image avec le contenu de data/ + ces fichiers.
 #
 # Une copie de la dernière sauvegarde est gardée dans .pio/fs_backup/
 # (contient les mots de passe en clair, dossier ignoré par git).

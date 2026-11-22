@@ -99,6 +99,11 @@ dans le boîtier, la chaleur de la Wemos fausserait la mesure. Éloignez-la auss
 son flux d'air chaud. Une correction de quelques dixièmes de degré peut être réglée dans
 **Réglages › Sonde de température**.
 
+Pour vérifier le branchement, regardez la ligne **Température** du cadre **Module** sur la page
+d'accueil : voyant vert et mesure si la sonde répond, orange « détectée, mesure en cours… » juste
+après la détection, gris « non détectée » sinon (elle apparaît dans la minute qui suit le
+branchement, sans redémarrer le module).
+
 ## 2. Installer le logiciel sur le module
 
 Aucun logiciel à installer sur l'ordinateur : tout se fait depuis le navigateur **Chrome** ou
@@ -171,6 +176,8 @@ appairage n'est alors nécessaire.
 
 La page d'accueil du module permet d'allumer et d'éteindre le poêle, et de régler la puissance
 et la ventilation. Chaque commande est envoyée immédiatement ; le poêle bipe à la réception.
+Poêle arrêté, un changement de puissance ou de ventilation est seulement mémorisé : il sera
+appliqué au prochain allumage (sans bip du poêle).
 
 <p align="center"><img src="docs/images/accueil.png" width="300" alt="Page d'accueil du module : marche / arrêt, mode autonome, puissance et ventilation"></p>
 
@@ -288,7 +295,7 @@ N'utilisez pas le fichier `…-complet.bin` pour une mise à jour : il effacerai
 | Le poêle ne réagit pas | Sélecteur « D » du panneau d'urgence sur **REMOTE** ; modèle de module (Réglages › Radio) ; appairage (étape 4) ; rapprochez le module du poêle |
 | Portée faible | Vérifiez que l'antenne du poêle (à l'arrière, près du panneau d'urgence) est vissée jusqu'en butée, partie mobile vers le haut |
 | Le poêle change de réglage tout seul | La télécommande d'origine a encore ses piles |
-| Pas de température affichée | Sonde DS18B20 : vérifiez la résistance de 4,7 kΩ sur R1 et les fils (jaune sur SDA). Le module la recherche toutes les minutes |
+| Température « non détectée » | Sonde DS18B20 : vérifiez la résistance de 4,7 kΩ sur R1 et les fils (jaune sur SDA). Le module la recherche toutes les minutes |
 | Mode autonome : « heure inconnue » | Le module n'accède pas au serveur de temps : vérifiez l'accès à Internet ou indiquez un serveur NTP local dans **Réglages › Mode autonome**. En attendant, il régule sur la dernière consigne sans rallumer le poêle |
 | Le mode autonome s'est désactivé | Une commande manuelle a été envoyée (page web, Home Assistant, bouton) : réactivez-le |
 | `poele-mcz.local` introuvable | Utilisez l'adresse IP du module (voir votre box) |

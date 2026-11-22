@@ -169,6 +169,11 @@ FAN2 = FAN3 = 7 (absents), BIP = 1.
   contient ni température ni consigne. Le firmware envoie 3 pour « marche », comme la télécommande.
 - **BIP** : bit 7 de l'octet 5, à 1 sur les appuis de la télécommande (le poêle bipe). Les renvois
   périodiques l'envoient à 0 : le poêle ne bipe pas (vérifié).
+- **Réglages poêle arrêté** : poêle arrêté, un changement de puissance ou de ventilation n'est
+  pas émis, seulement mémorisé (appliqué à l'allumage). L'émettre fait biper le poêle pour rien
+  (constaté), et l'effet d'une trame « arrêt » dont la puissance change n'est pas connu. Toute
+  trame « arrêt » reprend aussi la puissance et la ventilation de la dernière trame émise
+  (`sent_power`, `sent_fan` dans `state.json`).
 - **Renvoi périodique** : la télécommande d'origine renvoie sa trame toutes les 5 minutes environ ;
   le firmware fait de même (réglable, 300 s par défaut).
 - Le poêle n'émet rien : impossible de connaître son état réel.

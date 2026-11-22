@@ -45,8 +45,15 @@ void Stove::send(bool beep) {
   mcz::Command cmd;
   cmd.id = settings.stove.id;
   cmd.mode = _state.on ? mcz::MODE_ON : mcz::Mode::Off;
-  cmd.power = _state.power;
-  cmd.fan1 = _state.fan;
+  // Arrêt : puissance et ventilation de la trame précédente (voir Stove.h).
+  if (_state.on) {
+    _sent.power = _state.power;
+    _sent.fan = _state.fan;
+    _dirty = true;  // _sent est enregistré avec l'état
+  }
+  _sent.on = _state.on;
+  cmd.power = _sent.power;
+  cmd.fan1 = _sent.fan;
   cmd.fan2 = settings.stove.fan2;
   cmd.beep = beep;
 
@@ -63,17 +70,18 @@ void Stove::send(bool beep) {
   for (auto& l : _listeners) l();  // publie aussi les infos d'émission
 }
 
-void Stove::changed(bool manual, bool beep) {
+void Stove::changed(bool manual, bool beep, bool transmit) {
   _dirty = true;
-  request(beep);
+  if (transmit) request(beep);
   if (manual)
     for (auto& l : _manualListeners) l();
   for (auto& l : _listeners) l();
 }
 
 void Stove::applyAutomatic(const StoveState& s, bool beep) {
+  const bool transmit = s.on || _state.on;
   _state = s;
-  changed(false, beep);
+  changed(false, beep, transmit);
 }
 
 void Stove::setOn(bool on) {
@@ -84,14 +92,14 @@ void Stove::setOn(bool on) {
 bool Stove::setPower(uint8_t p) {
   if (p < mcz::POWER_MIN || p > mcz::POWER_MAX) return false;
   _state.power = p;
-  changed();
+  changed(true, true, _state.on);
   return true;
 }
 
 bool Stove::setFan(uint8_t f) {
   if (f < 1 || f > mcz::FAN_AUTO) return false;
   _state.fan = f;
-  changed();
+  changed(true, true, _state.on);
   return true;
 }
 
@@ -121,8 +129,10 @@ bool Stove::applyJson(JsonObjectConst obj, String& error) {
     }
     next.fan = f;
   }
+  // Poêle arrêté et marche/arrêt non demandé : réglage seulement mémorisé.
+  const bool transmit = next.on || !obj["on"].isNull();
   _state = next;
-  changed();
+  changed(true, true, transmit);
   return true;
 }
 
@@ -141,6 +151,8 @@ void Stove::saveState() {
   doc["on"] = _state.on;
   doc["power"] = _state.power;
   doc["fan"] = _state.fan;
+  doc["sent_power"] = _sent.power;
+  doc["sent_fan"] = _sent.fan;
   File f = LittleFS.open(STATE_FILE, "w");
   if (!f) return;
   serializeJson(doc, f);
@@ -160,5 +172,10 @@ bool Stove::loadState() {
   uint8_t fan = doc["fan"] | mcz::FAN_AUTO;
   _state.power = constrain(p, mcz::POWER_MIN, mcz::POWER_MAX);
   _state.fan = constrain(fan, (uint8_t)1, mcz::FAN_AUTO);
+  _sent = _state;
+  uint8_t sp = doc["sent_power"] | _state.power;
+  uint8_t sf = doc["sent_fan"] | _state.fan;
+  _sent.power = constrain(sp, mcz::POWER_MIN, mcz::POWER_MAX);
+  _sent.fan = constrain(sf, (uint8_t)1, mcz::FAN_AUTO);
   return true;
 }

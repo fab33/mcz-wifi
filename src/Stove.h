@@ -7,6 +7,12 @@
 //
 // Seuls marche/arrêt, puissance et ventilation agissent sur le poêle : le champ
 // "mode" de la trame (manuel/auto/eco) est ignoré par le poêle.
+//
+// Poêle arrêté : un changement de puissance ou de ventilation n'est pas émis,
+// seulement mémorisé (il s'applique à l'allumage). L'émettre fait biper le
+// poêle pour rien, et l'effet d'une trame « arrêt » dont la puissance change
+// n'est pas connu (risque d'allumage). Les trames « arrêt » reprennent aussi
+// la puissance et la ventilation de la dernière trame émise (_sent).
 #pragma once
 
 #include <Arduino.h>
@@ -61,13 +67,15 @@ class Stove {
 
  private:
   void request(bool beep);
-  void changed(bool manual = true, bool beep = true);
+  // transmit = false : mémorisé sans émission (réglage poêle arrêté).
+  void changed(bool manual = true, bool beep = true, bool transmit = true);
   void send(bool beep);
   void saveState();
   bool loadState();
 
   Rfm69Tx& _radio;
   StoveState _state;
+  StoveState _sent;  // puissance / ventilation de la dernière trame émise
   bool _pending = false;
   bool _pendingBeep = false;
   bool _dirty = false;
