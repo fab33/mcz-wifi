@@ -33,6 +33,8 @@ void Settings::setDefaults() {
   stove.id = ESP.getChipId() & 0xFFFFFF;
   stove.resendSeconds = DEFAULT_RESEND_S;
 
+  sensor = SensorSettings();
+
   webPassword = "";
 }
 
@@ -77,6 +79,9 @@ static void writeAll(const Settings& s, JsonObject root, bool withSecrets) {
   st["fan2"] = s.stove.fan2;
   st["resend_s"] = s.stove.resendSeconds;
 
+  JsonObject se = root["sensor"].to<JsonObject>();
+  se["offset"] = s.sensor.offset;
+
   if (withSecrets) root["web_password"] = s.webPassword;
   else root["has_web_password"] = s.webPassword.length() > 0;
 }
@@ -115,6 +120,11 @@ void Settings::fromJson(JsonObjectConst root) {
     readField(st, "fan2", stove.fan2);
     readField(st, "resend_s", stove.resendSeconds);
   }
+  JsonObjectConst se = root["sensor"];
+  if (!se.isNull()) {
+    JsonVariantConst v = se["offset"];
+    if (v.is<float>()) sensor.offset = v.as<float>();  // accepte aussi un entier
+  }
   readSecret(root, "web_password", webPassword);
   if (root["clear_web_password"] | false) webPassword = "";
 
@@ -123,12 +133,18 @@ void Settings::fromJson(JsonObjectConst root) {
   while (mqtt.baseTopic.endsWith("/")) mqtt.baseTopic.remove(mqtt.baseTopic.length() - 1);
   if (mqtt.baseTopic.isEmpty()) mqtt.baseTopic = "mcz/" + deviceId();
   if (mqtt.discoveryPrefix.isEmpty()) mqtt.discoveryPrefix = "homeassistant";
-  radio.frequencyHz = constrain(radio.frequencyHz, 863000000UL, 870000000UL);
+  // bandes ISM autorisées : 433,05-434,79 MHz ou 863-870 MHz
+  if (radio.frequencyHz < 650000000UL)
+    radio.frequencyHz = constrain(radio.frequencyHz, 433050000UL, 434790000UL);
+  else
+    radio.frequencyHz = constrain(radio.frequencyHz, 863000000UL, 870000000UL);
   radio.powerDbm = constrain(radio.powerDbm, (int8_t)-18, (int8_t)17);
   radio.chipUs = constrain(radio.chipUs, (uint16_t)100, (uint16_t)2000);
   radio.repeats = constrain(radio.repeats, (uint8_t)1, (uint8_t)5);
   stove.id &= 0xFFFFFF;
   stove.fan2 &= 0x07;
+  if (isnan(sensor.offset)) sensor.offset = 0;
+  sensor.offset = roundf(constrain(sensor.offset, -10.0f, 10.0f) * 10.0f) / 10.0f;
 }
 
 bool Settings::load() {

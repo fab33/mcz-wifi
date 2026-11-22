@@ -1,5 +1,5 @@
 // Télécommande WiFi pour poêle à granulés MCZ (Ego Air 2.0)
-// Matériel : Wemos D1 mini + shield WeMos RFM69 (ch2i) avec RFM69 868 MHz.
+// Matériel : Wemos D1 mini + shield WeMos RFM69 (ch2i) avec RFM69 433 ou 868 MHz.
 //
 // Organisation :
 //   lib/MczProtocol  encodage des trames MCZ (C++ pur, testé sur PC)
@@ -10,6 +10,7 @@
 //   src/WebUi        serveur web et API REST
 //   src/HomeAssistant MQTT + découverte Home Assistant
 //   src/Peripherals  LEDs et bouton du shield
+//   src/TempSensor   sonde de température DS18B20 optionnelle
 //   data/            pages web (HTML / CSS / JS)
 #include <Arduino.h>
 #include <LittleFS.h>
@@ -20,13 +21,15 @@
 #include "Peripherals.h"
 #include "Settings.h"
 #include "Stove.h"
+#include "TempSensor.h"
 #include "WebUi.h"
 #include "config.h"
 
 static Rfm69Tx radio(PIN_RFM_CS);
 static Stove stove(radio);
-static HomeAssistant homeAssistant(stove);
-static WebUi webUi(stove, homeAssistant, radio);
+static TempSensor tempSensor;
+static HomeAssistant homeAssistant(stove, tempSensor);
+static WebUi webUi(stove, homeAssistant, radio, tempSensor);
 static Peripherals peripherals(stove, homeAssistant, radio);
 
 void setup() {
@@ -48,6 +51,7 @@ void setup() {
     Serial.println("[RF] RFM69 introuvable : vérifiez le module et le soudage");
   }
   stove.begin();
+  tempSensor.begin();
 
   network.begin();
   homeAssistant.begin();
@@ -59,5 +63,6 @@ void loop() {
   webUi.loop();
   homeAssistant.loop();
   stove.loop();
+  tempSensor.loop();
   peripherals.loop();
 }

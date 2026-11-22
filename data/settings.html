@@ -73,6 +73,15 @@
       </select>
       <p class="hint">Si le poêle ne réagit pas, essayez l'autre modèle : avec le mauvais réglage,
         le module n'émet presque rien.</p>
+      <label for="radio-band">Bande de fréquence</label>
+      <select id="radio-band">
+        <option value="434500000">433 MHz (434,50 MHz, par défaut chez MCZ)</option>
+        <option value="868950000">868 MHz (868,95 MHz)</option>
+        <option value="">Personnalisée</option>
+      </select>
+      <p class="hint">Doit correspondre à la bande de la télécommande d'origine (indiquée au dos ou
+        dans le manuel du poêle) <strong>et</strong> à la version du module RFM69 (433 ou 868) :
+        un module 868 n'émet presque rien en 433 MHz, et inversement.</p>
       <div class="row">
         <div><label for="radio-power">Puissance (dBm)</label><input id="radio-power" type="number" min="-18" max="17" data-key="radio.power_dbm" data-type="int"></div>
         <div><label for="radio-freq">Fréquence (MHz)</label><input id="radio-freq" type="number" step="0.001" data-key="radio.frequency_hz" data-type="mhz"></div>
@@ -81,7 +90,16 @@
         <div><label for="radio-chip">Demi-bit (µs)</label><input id="radio-chip" type="number" min="100" max="2000" data-key="radio.chip_us" data-type="int"></div>
         <div><label for="radio-rep">Répétitions</label><input id="radio-rep" type="number" min="1" max="5" data-key="radio.repeats" data-type="int"></div>
       </div>
-      <p class="hint">Bande 868,7–869,2 MHz : 14 dBm (25 mW) maximum autorisé.</p>
+      <p class="hint" id="radio-limit"></p>
+    </section>
+
+    <section class="card">
+      <h2>Sonde de température</h2>
+      <label for="sensor-offset">Correction (°C)</label>
+      <input id="sensor-offset" type="number" min="-10" max="10" step="0.1" data-key="sensor.offset" data-type="float">
+      <p class="hint">Sonde DS18B20 optionnelle, détectée automatiquement (voir la documentation pour
+        le câblage). La correction est ajoutée à la mesure, par exemple -0,5 si la sonde indique
+        0,5 °C de trop.</p>
     </section>
 
     <section class="card">

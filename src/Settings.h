@@ -28,6 +28,10 @@ struct RadioSettings {
   uint8_t repeats;
 };
 
+struct SensorSettings {
+  float offset = 0;  // correction de la sonde de température (°C)
+};
+
 struct StoveSettings {
   uint32_t id;
   uint8_t fan2 = 7;        // 7 = absent (poêle à 1 ventilateur)
@@ -40,6 +44,7 @@ class Settings {
   MqttSettings mqtt;
   RadioSettings radio;
   StoveSettings stove;
+  SensorSettings sensor;
   String webPassword;  // vide = pas d'authentification sur l'interface web
 
   void setDefaults();

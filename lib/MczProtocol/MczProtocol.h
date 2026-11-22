@@ -1,4 +1,4 @@
-// Protocole radio des télécommandes MCZ (868 MHz, OOK, codage Manchester).
+// Protocole radio des télécommandes MCZ (433 ou 868 MHz, OOK, codage Manchester).
 //
 // Bibliothèque C++ pure (aucune dépendance Arduino) : elle peut être testée sur PC
 // (voir test/native). Format validé sur les captures de la vraie télécommande

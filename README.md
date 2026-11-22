@@ -9,9 +9,15 @@ toucher au poêle : un petit module WiFi remplace la télécommande radio d'orig
 - Portée radio supérieure à celle de la télécommande d'origine
 - Mise à jour du module sans câble
 
-> Testé sur un **MCZ Ego Air 2.0** avec télécommande radio **868 MHz**. D'autres modèles MCZ
-> utilisant la même télécommande 868 MHz devraient fonctionner. Les anciens modèles à télécommande
-> 433 MHz ne sont **pas** compatibles avec ce matériel.
+> Testé sur un **MCZ Ego Air 2.0** avec télécommande radio **868 MHz**.
+>
+> **433 ou 868 MHz ?** Les poêles MCZ fonctionnent par défaut dans la bande **433 MHz**
+> (434,50 MHz). MCZ propose aussi une version **868 MHz** (868,95 MHz), destinée aux installations
+> qui subissent des interférences en 433 MHz. Le protocole est exactement le même dans les deux
+> bandes : seule la fréquence change. Le firmware gère les deux (**Réglages › Radio › Bande de
+> fréquence**), mais le **module radio RFM69 doit être de la même bande que votre poêle** (voir
+> ci-dessous). En cas de doute, regardez la fréquence indiquée sur la télécommande d'origine ou
+> dans la notice du poêle.
 
 ---
 
@@ -21,11 +27,26 @@ toucher au poêle : un petit module WiFi remplace la télécommande radio d'orig
 |---|---|
 | **Wemos D1 mini** (ESP8266) | ou un clone compatible |
 | **Shield WeMos RFM69** de ch2i | [schémas et infos](https://github.com/hallard/WeMos-RFM69) — voir ci-dessous pour s'en passer |
-| **Module radio RFM69HW 868 MHz** | les modèles RFM69W / RFM69CW fonctionnent aussi (moins de portée) — bien prendre la version **868** |
-| **Antenne** | un simple fil rigide de **8,2 cm** soudé sur la sortie antenne suffit |
+| **Module radio RFM69HW, version 433 ou 868 MHz** | **la même bande que votre poêle** (voir ci-dessous). Les modèles RFM69W / RFM69CW fonctionnent aussi (moins de portée) |
+| **Antenne** | un simple fil rigide soudé sur la sortie antenne suffit : **8,2 cm** en 868 MHz, **17,3 cm** en 433 MHz |
 | **Câble micro-USB et chargeur USB 5 V** | pour alimenter le module en permanence |
 
+**Choisir la bonne version du module radio.** Le RFM69 existe en version 433 MHz et en version
+868 MHz (la bande est indiquée dans la référence chez le vendeur, par ex. « RFM69HW 433 MHz »).
+La puce est la même et le firmware est identique, mais les composants d'adaptation d'antenne
+soudés sur le module sont calculés pour une seule bande : un module 868 réglé sur 433 MHz (ou
+l'inverse) n'émet presque rien et le poêle ne recevra rien. Il faut donc :
+
+| Poêle / télécommande d'origine | Module RFM69 | Antenne (fil rigide) | Réglage « Bande de fréquence » |
+|---|---|---|---|
+| 433 MHz (par défaut chez MCZ) | version **433 MHz** | **17,3 cm** | 433 MHz (434,50 MHz) |
+| 868 MHz | version **868 MHz** | **8,2 cm** | 868 MHz (868,95 MHz) |
+
 Il faut savoir faire quelques soudures simples (module radio sur le shield, connecteurs).
+
+**Boîtier** : un boîtier à imprimer en 3D (deux pièces, deux vis M3), avec une variante percée
+pour la sonde de température, est fourni avec ses instructions de montage dans
+[`boitier/`](boitier/README.md).
 
 **Sans le shield**, on peut relier directement un module RFM69 à la Wemos avec des fils :
 
@@ -39,6 +60,42 @@ Il faut savoir faire quelques soudures simples (module radio sur le shield, conn
 | MOSI | D7 |
 
 Le module radio est alimenté en **3,3 V uniquement** : ne jamais le relier au 5 V.
+
+### Option : sonde de température DS18B20
+
+Le module peut mesurer la température de la pièce avec une sonde **DS18B20** (version étanche sur
+câble, environ 2 €). La mesure s'affiche sur la page du module et dans Home Assistant, où elle
+peut servir de sonde à un thermostat. Sans sonde, le module fonctionne normalement.
+
+Matériel en plus :
+- une sonde **DS18B20 sur câble** (3 fils) ;
+- une **résistance CMS de 4,7 kΩ** (« 472 ») de la taille des pastilles **R1** du shield
+  (comparez avec une résistance 0805 ou 0603 avant d'acheter).
+
+La sonde se branche sur le connecteur **I2C** du shield, les 4 trous marqués
+**3V3 · GND · SCL · SDA** au dos de la carte, près de la prise d'antenne. Ce connecteur et les
+emplacements de résistances voisins (« 4.7K R2 R1 — I2C Pullup ») sont vides d'origine.
+
+1. **Souder la résistance de 4,7 kΩ sur l'emplacement R1.** D'après le schéma du shield, R1 relie
+   SDA au 3,3 V : c'est la résistance de tirage dont la sonde a besoin. Vérifiez-le avant de
+   souder : à l'ohmmètre (ou au testeur de continuité), une pastille de R1 doit être reliée au
+   trou **SDA**, l'autre au trou **3V3**. Laissez **R2** (SCL) vide.
+2. **Souder les 3 fils de la sonde** dans le connecteur :
+
+| Fil de la sonde DS18B20 | Trou du connecteur I2C |
+|---|---|
+| rouge (VDD) | **3V3** |
+| noir (GND) | **GND** |
+| jaune (DQ, données) | **SDA** (= D2 de la Wemos) |
+
+Les couleurs peuvent varier selon le fabricant : en cas de doute, fiez-vous à la fiche de la sonde.
+
+La sonde est détectée automatiquement au démarrage (puis recherchée toutes les minutes si elle
+manque) et lue toutes les 30 secondes. Placez-la **hors du boîtier**, au bout de son câble (le fond `fond-sonde.stl` du
+[boîtier](boitier/README.md) est percé pour ce câble) :
+dans le boîtier, la chaleur de la Wemos fausserait la mesure. Éloignez-la aussi du poêle et de
+son flux d'air chaud. Une correction de quelques dixièmes de degré peut être réglée dans
+**Réglages › Sonde de température**.
 
 ## 2. Installer le logiciel sur le module
 
@@ -102,9 +159,11 @@ poêle (chapitre « Panneau d'urgence »).*
 lu avec un boîtier RFXCOM) : saisissez-le dans **Réglages › Poêle › Identifiant**. Aucun
 appairage n'est alors nécessaire.
 
-**Si le poêle ne réagit pas** : dans **Réglages › Radio**, vérifiez que le modèle de module
-correspond au vôtre (inscription sur le module : « RFM69HW » ou « RFM69W »). Avec un mauvais
-réglage, le module n'émet presque rien.
+**Si le poêle ne réagit pas** : dans **Réglages › Radio**, vérifiez que :
+- la **bande de fréquence** correspond à celle de votre poêle (433 ou 868 MHz) **et** à la version
+  de votre module RFM69 ;
+- le **modèle de module** correspond au vôtre (inscription sur le module : « RFM69HW » ou
+  « RFM69W »). Avec un mauvais réglage, le module n'émet presque rien.
 
 ## 5. Utilisation
 
@@ -120,7 +179,9 @@ et la ventilation. Chaque commande est envoyée immédiatement ; le poêle bipe 
   d'origine (réglable dans **Réglages › Poêle**).
 - Les modes Manuel / Auto / Eco de la télécommande n'existent pas ici : ils sont gérés par la
   télécommande elle-même et ne changent rien au poêle. Pour réguler sur la température, utilisez
-  Home Assistant (thermostat + sonde de température).
+  Home Assistant (thermostat + sonde de température, par exemple la sonde DS18B20 optionnelle
+  du module).
+- Si une sonde DS18B20 est branchée, la température s'affiche dans le cadre **Module**.
 - Après une coupure de courant, le module **n'envoie rien** au poêle : il ne risque pas de
   l'allumer ou de l'éteindre par surprise.
 
@@ -149,7 +210,9 @@ et la ventilation. Chaque commande est envoyée immédiatement ; le poêle bipe 
    Aucune notification « nouvel appareil » ne s'affiche : allez directement le chercher là.
 
 Entités créées : interrupteur **Poêle**, **Puissance** (1 à 5), **Ventilation** (1 à 5 / auto),
-bouton **Renvoyer la commande**, capteur **Signal WiFi**.
+bouton **Renvoyer la commande**, capteur **Signal WiFi** et, si une sonde DS18B20 est branchée,
+capteur **Température** (il devient « indisponible » si la sonde ne répond plus ; s'il ne vous
+sert plus, supprimez-le dans Home Assistant).
 
 ## 7. Mettre à jour le module
 
@@ -169,14 +232,16 @@ N'utilisez pas le fichier `…-complet.bin` pour une mise à jour : il effacerai
 | Le poêle ne réagit pas | Sélecteur « D » du panneau d'urgence sur **REMOTE** ; modèle de module (Réglages › Radio) ; appairage (étape 4) ; rapprochez le module du poêle |
 | Portée faible | Vérifiez que l'antenne du poêle (à l'arrière, près du panneau d'urgence) est vissée jusqu'en butée, partie mobile vers le haut |
 | Le poêle change de réglage tout seul | La télécommande d'origine a encore ses piles |
+| Pas de température affichée | Sonde DS18B20 : vérifiez la résistance de 4,7 kΩ sur R1 et les fils (jaune sur SDA). Le module la recherche toutes les minutes |
 | `poele-mcz.local` introuvable | Utilisez l'adresse IP du module (voir votre box) |
 | Mot de passe de l'interface oublié | Réinstallez le module (étape 2, avec **Erase Flash**) puis refaites la configuration |
 
 ## Avertissement
 
 Projet personnel, sans lien avec MCZ. Il n'intervient pas sur les sécurités du poêle, qui restent
-assurées par le poêle lui-même, mais vous l'utilisez sous votre seule responsabilité. Le module
-émet dans la bande 868 MHz : ne dépassez pas 14 dBm (25 mW) dans **Réglages › Radio**.
+assurées par le poêle lui-même, mais vous l'utilisez sous votre seule responsabilité. Ne dépassez
+pas la puissance autorisée dans **Réglages › Radio** : 14 dBm (25 mW) en 868 MHz, 10 dBm (10 mW)
+en 433 MHz.
 
 ## Pour les développeurs
 

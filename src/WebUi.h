@@ -1,6 +1,6 @@
 // Serveur web : pages statiques (data/ -> LittleFS) et API REST JSON.
 //
-//   GET  /api/status          état du poêle + infos module
+//   GET  /api/status          état du poêle + infos module (+ température si sonde)
 //   POST /api/stove           {"on":true,"power":3,"fan":"auto"}
 //   POST /api/stove/resend    renvoie la dernière commande
 //   GET  /api/settings        réglages (sans les mots de passe)
@@ -18,11 +18,12 @@
 class Stove;
 class HomeAssistant;
 class Rfm69Tx;
+class TempSensor;
 
 class WebUi {
  public:
-  WebUi(Stove& stove, HomeAssistant& ha, Rfm69Tx& radio)
-      : _stove(stove), _ha(ha), _radio(radio), _server(80) {}
+  WebUi(Stove& stove, HomeAssistant& ha, Rfm69Tx& radio, TempSensor& temp)
+      : _stove(stove), _ha(ha), _radio(radio), _temp(temp), _server(80) {}
 
   void begin();
   void loop();
@@ -47,6 +48,7 @@ class WebUi {
   Stove& _stove;
   HomeAssistant& _ha;
   Rfm69Tx& _radio;
+  TempSensor& _temp;
   ESP8266WebServer _server;
   ESP8266HTTPUpdateServer _updater;
   uint32_t _rebootAt = 0;

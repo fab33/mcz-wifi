@@ -7,6 +7,7 @@
 #include "Network.h"
 #include "Settings.h"
 #include "Stove.h"
+#include "TempSensor.h"
 #include "config.h"
 
 static const char* const WEB_USER = "admin";
@@ -109,6 +110,13 @@ void WebUi::handleStatus() {
   JsonObject r = dev["radio"].to<JsonObject>();
   r["present"] = _radio.present();
   if (_radio.present()) r["version"] = _radio.version();
+
+  JsonObject t = dev["temperature"].to<JsonObject>();
+  t["present"] = _temp.present();
+  if (_temp.valid()) {
+    t["celsius"] = _temp.celsius();
+    t["age_s"] = _temp.ageMs() / 1000;
+  }
   sendJson(200, doc);
 }
 

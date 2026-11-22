@@ -41,6 +41,7 @@ function readForm() {
     if (el.dataset.secret && v === "") continue; // inchangé
     switch (el.dataset.type) {
       case "int": v = parseInt(v, 10); break;
+      case "float": v = parseFloat(v.replace(",", ".")); break;
       case "bool": v = v === "true"; break;
       case "mhz": v = Math.round(parseFloat(v) * 1e6); break;
       case "id": {
@@ -57,9 +58,41 @@ function readForm() {
   return out;
 }
 
+// --- Bande radio : préréglages 433 / 868 MHz -------------------------------
+const BANDS = [
+  { min: 433.05, max: 434.79, maxDbm: 10, text: "Bande 433,05–434,79 MHz : 10 dBm (10 mW) maximum autorisé." },
+  { min: 863, max: 870, maxDbm: 14, text: "Bande 868,7–869,2 MHz : 14 dBm (25 mW) maximum autorisé." },
+];
+
+function currentBand() {
+  const mhz = parseFloat($("#radio-freq").value);
+  return BANDS.find((b) => mhz >= b.min && mhz <= b.max);
+}
+
+function syncBand() {
+  const hz = Math.round(parseFloat($("#radio-freq").value) * 1e6);
+  const sel = $("#radio-band");
+  sel.value = [...sel.options].some((o) => o.value === String(hz)) ? String(hz) : "";
+  const band = currentBand();
+  $("#radio-limit").textContent = band
+    ? band.text
+    : "Fréquence hors des bandes 433,05–434,79 MHz et 863–870 MHz : elle sera ramenée dans la bande la plus proche.";
+}
+
+$("#radio-band").addEventListener("change", (e) => {
+  if (!e.target.value) return $("#radio-freq").focus();
+  $("#radio-freq").value = (Number(e.target.value) / 1e6).toFixed(3);
+  const band = currentBand();
+  const power = $("#radio-power");
+  if (band && parseInt(power.value, 10) > band.maxDbm) power.value = band.maxDbm;
+  syncBand();
+});
+$("#radio-freq").addEventListener("input", syncBand);
+
 async function load() {
   try {
     fillForm(await api("/api/settings"));
+    syncBand();
   } catch (e) {
     toast(e.message, true);
   }

@@ -5,12 +5,13 @@
 
 #include "Settings.h"
 #include "Stove.h"
+#include "TempSensor.h"
 #include "config.h"
 
 static const uint32_t RECONNECT_INTERVAL_MS = 10000;
 static const uint32_t DIAG_INTERVAL_MS = 60000;
 
-HomeAssistant::HomeAssistant(Stove& stove) : _stove(stove), _mqtt(_net) {}
+HomeAssistant::HomeAssistant(Stove& stove, TempSensor& temp) : _stove(stove), _temp(temp), _mqtt(_net) {}
 
 String HomeAssistant::topic(const char* suffix) const { return settings.mqtt.baseTopic + suffix; }
 
@@ -18,6 +19,7 @@ void HomeAssistant::begin() {
   _mqtt.setBufferSize(1024);  // messages de découverte HA
   _mqtt.setCallback([this](char* t, uint8_t* p, unsigned int l) { onMessage(t, p, l); });
   _stove.onChange([this]() { _statePending = true; });
+  _temp.onChange([this]() { _tempPending = true; });
   reconfigure();
 }
 
@@ -52,6 +54,7 @@ bool HomeAssistant::connect() {
   publishDiscovery();
   publishState();
   publishDiagnostics();
+  publishTemperature();
   return true;
 }
 
@@ -69,6 +72,7 @@ void HomeAssistant::loop() {
   }
   _mqtt.loop();
   if (_statePending) publishState();
+  if (_tempPending) publishTemperature();
   if (millis() - _lastDiag > DIAG_INTERVAL_MS) publishDiagnostics();
 }
 
@@ -84,6 +88,7 @@ void HomeAssistant::onMessage(char* rawTopic, uint8_t* payload, unsigned int len
     if (value == "online") {  // Home Assistant vient de redémarrer
       publishDiscovery();
       publishState();
+      publishTemperature();
     }
     return;
   }
@@ -127,6 +132,18 @@ void HomeAssistant::publishState() {
   String out;
   serializeJson(doc, out);
   _mqtt.publish(topic("/state").c_str(), out.c_str(), true);
+}
+
+void HomeAssistant::publishTemperature() {
+  _tempPending = false;
+  // L'entité n'est créée qu'à la première détection d'une sonde ; elle n'est
+  // jamais supprimée automatiquement (une sonde débranchée la rend
+  // "indisponible" grâce à expire_after).
+  if (_temp.present() && !_tempDiscovered) publishTemperatureDiscovery();
+  if (!_temp.valid()) return;
+  char buf[12];
+  snprintf(buf, sizeof(buf), "%.1f", _temp.celsius());
+  _mqtt.publish(topic("/temperature").c_str(), buf, true);
 }
 
 void HomeAssistant::publishDiagnostics() {
@@ -230,4 +247,21 @@ void HomeAssistant::publishDiscovery() {
     doc["entity_category"] = "diagnostic";
     send("sensor", "rssi", doc);
   }
+  _tempDiscovered = false;
+  if (_temp.present()) publishTemperatureDiscovery();
+}
+
+void HomeAssistant::publishTemperatureDiscovery() {
+  JsonDocument doc;
+  fillCommon(doc, "temperature", "Température");
+  doc["state_topic"] = settings.mqtt.baseTopic + "/temperature";
+  doc["device_class"] = "temperature";
+  doc["unit_of_measurement"] = "°C";
+  doc["state_class"] = "measurement";
+  doc["suggested_display_precision"] = 1;
+  doc["expire_after"] = TEMP_READ_INTERVAL_MS / 1000 * 4;  // indisponible après 4 lectures ratées
+  String out;
+  serializeJson(doc, out);
+  String t = settings.mqtt.discoveryPrefix + "/sensor/" + settings.deviceId() + "/temperature/config";
+  _tempDiscovered = _mqtt.publish(t.c_str(), out.c_str(), true);
 }

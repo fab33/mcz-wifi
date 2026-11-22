@@ -8,9 +8,10 @@
 //   <base>/set/power     1..5
 //   <base>/set/fan       1..5 / auto
 //   <base>/set/resend    (n'importe quoi) renvoie la dernière commande
+//   <base>/temperature   température de la sonde DS18B20 en °C (si présente)
 //
 // Entités créées dans HA : interrupteur, puissance, ventilation, bouton
-// "Renvoyer", signal WiFi.
+// "Renvoyer", signal WiFi, température (seulement si une sonde a été détectée).
 #pragma once
 
 #include <Arduino.h>
@@ -18,10 +19,11 @@
 #include <WiFiClient.h>
 
 class Stove;
+class TempSensor;
 
 class HomeAssistant {
  public:
-  explicit HomeAssistant(Stove& stove);
+  HomeAssistant(Stove& stove, TempSensor& temp);
 
   void begin();
   void loop();
@@ -36,13 +38,18 @@ class HomeAssistant {
   void publishDiscovery();
   void publishState();
   void publishDiagnostics();
+  void publishTemperature();
+  void publishTemperatureDiscovery();
   String topic(const char* suffix) const;
 
   Stove& _stove;
+  TempSensor& _temp;
   WiFiClient _net;
   PubSubClient _mqtt;
   uint32_t _lastAttempt = 0;
   uint32_t _lastDiag = 0;
   bool _statePending = false;
+  bool _tempPending = false;
+  bool _tempDiscovered = false;
   String _lastError;
 };

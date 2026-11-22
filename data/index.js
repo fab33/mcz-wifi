@@ -29,8 +29,15 @@ function renderDevice(d) {
     ["MQTT", !m.enabled ? `${dot("")}désactivé`
       : m.connected ? `${dot("ok")}connecté` : `${dot("warn")}${m.error || "déconnecté"}`],
     ["Radio", r.present ? `${dot("ok")}RFM69 (v0x${r.version.toString(16)})` : `${dot("err")}module absent`],
-    ["Version", d.version],
   ];
+  const t = d.temperature;
+  if (t && t.present) {
+    rows.push(["Température", t.celsius !== undefined
+      ? `${t.celsius.toFixed(1).replace(".", ",")} °C` : `${dot("warn")}mesure en cours…`]);
+  }
+  rows.push(
+    ["Version", d.version],
+  );
   $("#status").innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
 }
 
