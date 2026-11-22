@@ -45,6 +45,9 @@ void Stove::send(bool beep) {
   mcz::Command cmd;
   cmd.id = settings.stove.id;
   cmd.mode = _state.on ? mcz::MODE_ON : mcz::Mode::Off;
+  // Bip seulement à la mise en route et à l'arrêt : jamais pour un changement
+  // de puissance ou de ventilation, ni pour un renvoi du même état.
+  beep = beep && _state.on != _sent.on;
   // Arrêt : puissance et ventilation de la trame précédente (voir Stove.h).
   if (_state.on) {
     _sent.power = _state.power;

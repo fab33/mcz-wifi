@@ -41,7 +41,7 @@ struct AutoSettings {
   uint8_t heatPower = 3;
   uint8_t holdPower = 1;
   uint16_t holdMin = 15;
-  bool beep = true;          // bip du poêle sur les changements automatiques
+  bool beep = true;          // bip du poêle aux allumages / arrêts automatiques
 };
 
 struct SensorSettings {

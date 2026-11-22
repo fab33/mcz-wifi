@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define FIRMWARE_NAME "mcz-wifi"
-#define FIRMWARE_VERSION "1.2.1"
+#define FIRMWARE_VERSION "1.2.2"
 
 // --- Brochage du shield WeMos RFM69 (ch2i) sur Wemos D1 mini --------------
 // SPI matériel : SCK = GPIO14 (D5), MISO = GPIO12 (D6), MOSI = GPIO13 (D7)

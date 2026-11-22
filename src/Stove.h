@@ -13,6 +13,10 @@
 // poêle pour rien, et l'effet d'une trame « arrêt » dont la puissance change
 // n'est pas connu (risque d'allumage). Les trames « arrêt » reprennent aussi
 // la puissance et la ventilation de la dernière trame émise (_sent).
+//
+// Bip du poêle : seulement quand une trame passe de marche à arrêt ou
+// inversement par rapport à la trame précédente (send()). Changements de
+// puissance ou de ventilation et renvois sont toujours silencieux.
 #pragma once
 
 #include <Arduino.h>
@@ -42,7 +46,8 @@ class Stove {
   const StoveState& state() const { return _state; }
   bool isOn() const { return _state.on; }
 
-  // Commandes (émission avec bip) ; retournent false si la valeur est invalide.
+  // Commandes (bip seulement en cas de mise en route / arrêt) ; retournent
+  // false si la valeur est invalide.
   void setOn(bool on);
   bool setPower(uint8_t p);
   bool setFan(uint8_t f);

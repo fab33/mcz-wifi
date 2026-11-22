@@ -175,9 +175,10 @@ appairage n'est alors nécessaire.
 ## 5. Utilisation
 
 La page d'accueil du module permet d'allumer et d'éteindre le poêle, et de régler la puissance
-et la ventilation. Chaque commande est envoyée immédiatement ; le poêle bipe à la réception.
+et la ventilation. Chaque commande est envoyée immédiatement. Le poêle bipe seulement à la mise
+en route et à l'arrêt : un changement de puissance ou de ventilation est silencieux.
 Poêle arrêté, un changement de puissance ou de ventilation est seulement mémorisé : il sera
-appliqué au prochain allumage (sans bip du poêle).
+appliqué au prochain allumage.
 
 <p align="center"><img src="docs/images/accueil.png" width="300" alt="Page d'accueil du module : marche / arrêt, mode autonome, puissance et ventilation"></p>
 

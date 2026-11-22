@@ -174,7 +174,10 @@ FAN2 = FAN3 = 7 (absents), BIP = 1.
   rien au poêle (vérifié) : la régulation Auto/Eco est faite dans la télécommande, la trame ne
   contient ni température ni consigne. Le firmware envoie 3 pour « marche », comme la télécommande.
 - **BIP** : bit 7 de l'octet 5, à 1 sur les appuis de la télécommande (le poêle bipe). Les renvois
-  périodiques l'envoient à 0 : le poêle ne bipe pas (vérifié).
+  périodiques l'envoient à 0 : le poêle ne bipe pas (vérifié). Le firmware ne le met à 1 que
+  pour une trame qui passe de marche à arrêt ou inversement (`Stove::send()`) : changements de
+  puissance ou de ventilation et renvois (y compris « Renvoyer la commande ») sont silencieux ; le poêle
+  applique bien un changement de puissance reçu sans bip (vérifié).
 - **Réglages poêle arrêté** : poêle arrêté, un changement de puissance ou de ventilation n'est
   pas émis, seulement mémorisé (appliqué à l'allumage). L'émettre fait biper le poêle pour rien
   (constaté), et l'effet d'une trame « arrêt » dont la puissance change n'est pas connu. Toute
@@ -221,11 +224,10 @@ carte n'est nécessaire. Le flux complet (5 répétitions) tient en 125 octets.
   - à l'activation (et au démarrage du module), si le poêle est déjà allumé, la régulation
     commence en Chauffe au lieu de l'éteindre.
 - **Commandes** : le module émet lorsque l'état voulu (marche, puissance, ventilation auto)
-  diffère de l'état courant, avec ou sans bip (`auto.beep`). À la première régulation après le
+  diffère de l'état courant ; bip à l'allumage et à l'arrêt seulement, si `auto.beep`. À la première régulation après le
   démarrage du module ou l'activation du mode, l'état voulu est émis même s'il n'a pas changé
   (sans bip). Ensuite, comme pour toute commande, l'état est renvoyé sans bip toutes les
-  `stove.resend_s` secondes (300 par défaut) par `Stove::loop()`. Les changements silencieux
-  (bip à 0) n'ont été vérifiés que pour des renvois du même état.
+  `stove.resend_s` secondes (300 par défaut) par `Stove::loop()`.
 - **Reprise manuelle** : `Stove::applyAutomatic()` ne déclenche pas les écouteurs « manuels » ;
   toute autre modification (`setOn`, `setPower`, `setFan`, `applyJson`) désactive le mode autonome.
 - Horloge monotone en secondes (`Clock::uptimeS()`), insensible au retour à zéro de `millis()`.
